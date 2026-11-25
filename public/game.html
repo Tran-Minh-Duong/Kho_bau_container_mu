@@ -1,0 +1,3189 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kho Báu Container Mù · Zuong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800;900&family=Cinzel:wght@700;800;900&family=Lalezar&display=swap">
+<style>
+:root {
+  --gold: #f6c954;
+  --gold-dim: #9c7424;
+  --red: #ff4b4b;
+  --blue: #38bdf8;
+  --emerald: #34d399;
+  --ink: #fff7ea;
+  --display: "Lalezar", "Cinzel", "Be Vietnam Pro", system-ui, sans-serif;
+  --body: "Be Vietnam Pro", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; user-select: none; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #05050a;
+  color: var(--ink);
+  font-family: var(--body);
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ===== Layout (standalone test vs embedded stage) ===== */
+.wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 12px; height: 100vh; }
+#box { height: calc(100vh - 24px); aspect-ratio: 9 / 16; position: relative; overflow: hidden; border-radius: 14px; border: 1px solid #3a2a40; background: #04050c; justify-self: center; }
+html.embed .wrap { display: block; padding: 0; }
+html.embed #box { height: 100vh; width: 100vw; aspect-ratio: auto; border: 0; border-radius: 0; }
+html.embed #panel { display: none; }
+
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1080px;
+  height: 1920px;
+  transform-origin: 0 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(245, 158, 11, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 50% 62%, rgba(14, 165, 233, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #070b16 0%, #0d1324 45%, #070a14 100%);
+}
+#bgFxCanvas, #gameCanvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+#gameCanvas { left: 26px; top: 278px; width: 1028px; height: 810px; border-radius: 18px; }
+
+#stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 48%, rgba(4, 5, 14, 0.5) 100%),
+    linear-gradient(180deg, rgba(6, 9, 24, 0.35) 0%, transparent 16%, transparent 80%, rgba(5, 6, 15, 0.72) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+#ui { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.o {
+  text-shadow:
+    0 3px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000,
+    2px 2px 0 #000, -2px -2px 0 #000, 0 4px 12px rgba(0, 0, 0, .9);
+}
+
+/* Header */
+#headerBar {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 20px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.brandWrap { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.crestSvg { width: 48px; height: 38px; filter: drop-shadow(0 4px 10px rgba(255, 176, 40, .55)) drop-shadow(0 2px 3px #000); }
+.brandTitle {
+  font-family: var(--display);
+  font-size: 33px;
+  line-height: 1;
+  letter-spacing: 0.8px;
+  color: #ffe270;
+  -webkit-text-stroke: 2.5px #1f0d02;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #1c0b02, 0 0 18px rgba(255, 196, 46, 0.58);
+  white-space: nowrap;
+}
+.brandTag {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #fde047;
+  background: linear-gradient(180deg, rgba(180, 83, 9, 0.92), rgba(120, 53, 15, 0.95));
+  color: #fffbeb;
+  font: 900 16px/1 var(--display);
+  letter-spacing: 1.1px;
+  white-space: nowrap;
+}
+
+/* Match Header Row */
+#matchHeaderRow {
+  position: absolute;
+  top: 64px;
+  left: 20px;
+  right: 20px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: linear-gradient(180deg, rgba(18, 16, 32, 0.96), rgba(9, 10, 20, 0.97));
+  border: 2px solid rgba(246, 201, 84, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+}
+.phaseBlock { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-width: 0; }
+.phasePill {
+  font: 900 22px/1 var(--body);
+  padding: 7px 14px;
+  border-radius: 10px;
+  color: #fff;
+  letter-spacing: 0.4px;
+  background: linear-gradient(180deg, #0284c7, #075985);
+  border: 1.5px solid #7dd3fc;
+  white-space: nowrap;
+}
+.phasePill.scout { background: linear-gradient(180deg, #059669, #065f46); border-color: #6ee7b7; }
+.phasePill.auction { background: linear-gradient(180deg, #d97706, #92400e); border-color: #fde047; }
+.phasePill.snipe { background: linear-gradient(180deg, #dc2626, #7f1d1d); border-color: #fca5a5; animation: pulse 0.7s infinite; }
+.phasePill.reveal { background: linear-gradient(180deg, #9333ea, #581c87); border-color: #e9d5ff; }
+.roundBadge { font: 800 22px/1 var(--display); color: #fde68a; white-space: nowrap; }
+
+.centerClockBlock {
+  display: flex;
+  flex: 0 0 270px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.clockBox {
+  font: 900 40px/1 var(--display);
+  color: #fff;
+  letter-spacing: 1.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.45);
+}
+.clockBox.hurry { color: #f87171; animation: pulse 0.65s infinite; text-shadow: 0 0 22px rgba(239, 68, 68, 0.9); }
+@keyframes pulse { 50% { transform: scale(1.09); } }
+.ptsText { font: 700 14px/1 var(--body); color: #fbbf24; margin-top: 2px; white-space: nowrap; }
+
+.museumStatBlock {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+}
+.museumStatTop { font: 800 22px/1.1 var(--body); color: #fde047; white-space: nowrap; }
+.museumStatSub { font: 700 15px/1.1 var(--body); color: #94a3b8; margin-top: 3px; white-space: nowrap; }
+
+/* Command Row */
+#joinRow {
+  position: absolute;
+  top: 132px;
+  left: 20px;
+  right: 20px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(10, 12, 22, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+.joinPill { font: 900 21px/1 var(--body); letter-spacing: 0.4px; white-space: nowrap; }
+.joinPill.gold { color: #fde047; }
+.joinPill.cyan { color: #7dd3fc; }
+.joinPill.pink { color: #f9a8d4; }
+.joinDot { font: 900 20px/1 var(--body); color: #64748b; }
+
+/* Dynamic Acoustic Clue / Snipe War Banner */
+#rotatingGuideArea {
+  position: absolute;
+  top: 180px;
+  left: 20px;
+  right: 20px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(16, 18, 34, 0.95), rgba(10, 10, 22, 0.97));
+  border: 2px solid rgba(246, 201, 84, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+#rotatingGuideArea.snipe {
+  border-color: #ef4444;
+  background: linear-gradient(180deg, rgba(95, 15, 24, 0.96), rgba(45, 9, 14, 0.98));
+}
+.guidePanel { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.shakeRow { width: 100%; display: flex; align-items: center; gap: 12px; }
+.shakeLabel { font: 800 20px/1 var(--body); color: #f9a8d4; white-space: nowrap; }
+.shakeTrack { flex: 1; height: 16px; border-radius: 999px; background: rgba(15, 23, 42, 0.9); border: 1.5px solid rgba(244, 114, 182, 0.45); overflow: hidden; }
+.shakeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #ec4899, #f59e0b, #fde047); transition: width 0.22s ease-out; }
+.shakePct { font: 900 20px/1 var(--display); color: #fde047; min-width: 60px; text-align: right; }
+.clueLine { font: 800 25px/1.2 var(--body); color: #fef08a; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.auctionHudRow { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.leaderPill { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.miniAv {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2.5px solid #fde047;
+  background: #1e293b;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font: 900 22px/1 var(--body);
+  color: #fff;
+  flex-shrink: 0;
+}
+.miniAv img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.leaderTxt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.leaderTxt b { font: 900 24px/1.1 var(--body); color: #fde047; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.leaderTxt span { font: 700 18px/1.1 var(--body); color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snipeBox {
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1.5px solid rgba(251, 191, 36, 0.6);
+  font: 800 21px/1.15 var(--body);
+  color: #fef08a;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.snipeBox.urgent { background: #dc2626; border-color: #fecaca; color: #fff; animation: pulse 0.65s infinite; }
+
+/* Stage Frame & Floating Museum Button */
+#mapFrame {
+  position: absolute;
+  left: 22px;
+  top: 274px;
+  width: 1036px;
+  height: 818px;
+  border-radius: 22px;
+  border: 5px solid #e7ba4d;
+  box-shadow:
+    inset 0 0 0 3px #422806,
+    0 0 0 3px #190e03,
+    0 12px 42px rgba(0, 0, 0, .85);
+  pointer-events: none;
+}
+#mapRankBtn {
+  position: absolute;
+  left: 42px;
+  top: 292px;
+  z-index: 15;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 2px solid #e7ba4d;
+  background: linear-gradient(180deg, rgba(32, 24, 15, 0.94), rgba(11, 10, 18, 0.96));
+  color: #fde68a;
+  font: 800 20px/1 var(--body);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.78);
+  cursor: pointer;
+}
+#mapRankBtn:hover { filter: brightness(1.15); }
+#mapRankBtn.on { border-color: #fde047; background: linear-gradient(180deg, #b45309, #78350f); color: #fffbeb; }
+
+/* Dynamic Toasts & Banners */
+#bossToast {
+  position: absolute;
+  left: 50%;
+  top: 344px;
+  transform: translate(-50%, -18px);
+  z-index: 18;
+  opacity: 0;
+  padding: 10px 26px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(16, 18, 36, .95), rgba(32, 24, 52, .95));
+  border: 2px solid #fbbf24;
+  font: 900 24px/1.15 var(--body);
+  color: #fef08a;
+  white-space: nowrap;
+  max-width: 960px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .82);
+  transition: opacity .24s, transform .24s;
+}
+#bossToast.on { opacity: 1; transform: translate(-50%, 0); }
+
+#summonBanner {
+  position: absolute;
+  left: 44px;
+  right: 44px;
+  top: 966px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, rgba(120, 53, 15, .96), rgba(30, 27, 75, .96));
+  border: 2.5px solid #fde047;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .88);
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity .22s, transform .22s;
+}
+#summonBanner.on { opacity: 1; transform: scale(1); }
+#summonBanner.steal { background: linear-gradient(90deg, rgba(153, 27, 27, .97), rgba(180, 83, 9, .96)); border-color: #fecaca; }
+#summonBanner.troll { background: linear-gradient(90deg, rgba(63, 98, 18, .96), rgba(30, 41, 59, .96)); border-color: #bef264; }
+.sAv {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2.5px solid #fde047;
+  background: #0f172a;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font: 900 26px/1 var(--body);
+  flex-shrink: 0;
+}
+.sAv img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sTxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sTxt b { font: 900 26px/1.15 var(--body); color: #fef08a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sTxt span { font: 700 19px/1.2 var(--body); color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sCoin { padding: 8px 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.45); border: 1.5px solid #fde047; font: 900 21px/1 var(--display); color: #fde047; white-space: nowrap; }
+
+/* TỦ BẢO TÀNG TRƯNG BÀY SUỐT BUỔI LIVE */
+#museumCabinet {
+  position: absolute;
+  top: 1104px;
+  left: 22px;
+  right: 22px;
+  height: 388px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(18, 22, 38, 0.96), rgba(9, 11, 20, 0.98));
+  border: 2.5px solid rgba(231, 186, 77, 0.65);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 28px rgba(245, 158, 11, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.museumHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.museumTitle { font: 900 21px/1 var(--body); color: #fde047; letter-spacing: 0.3px; white-space: nowrap; }
+.museumMeta { font: 800 16px/1 var(--body); color: #94a3b8; white-space: nowrap; }
+.museumGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.mSlot {
+  position: relative;
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(15, 23, 42, 0.88));
+  border: 1.5px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.mSlot.empty { opacity: 0.46; border-style: dashed; align-items: center; justify-content: center; text-align: center; }
+.mSlot.r-legendary { border-color: #fde047; background: linear-gradient(180deg, rgba(180, 83, 9, 0.34), rgba(15, 23, 42, 0.95)); box-shadow: inset 0 0 18px rgba(250, 204, 21, 0.2); }
+.mSlot.r-epic { border-color: #c084fc; background: linear-gradient(180deg, rgba(126, 34, 206, 0.28), rgba(15, 23, 42, 0.95)); }
+.mSlot.r-rare { border-color: #38bdf8; background: linear-gradient(180deg, rgba(2, 132, 199, 0.26), rgba(15, 23, 42, 0.95)); }
+.mSlot.r-common { border-color: #34d399; background: linear-gradient(180deg, rgba(5, 150, 105, 0.22), rgba(15, 23, 42, 0.95)); }
+.mSlot.r-troll { border-color: #a3e635; background: linear-gradient(180deg, rgba(77, 124, 15, 0.28), rgba(15, 23, 42, 0.95)); }
+.mTop { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mIcon { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 38px; line-height: 1; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.75)); }
+.mIcon img { width: 46px; height: 46px; object-fit: contain; border-radius: 8px; }
+
+/* ===== CENTER-SCREEN TIERED REVEAL SHOWCASE ===== */
+#centerRevealOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+#centerRevealOverlay.on { opacity: 1; }
+.revealScrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, rgba(15, 23, 42, 0.25) 0%, rgba(4, 6, 15, 0.78) 72%);
+}
+.revealStage {
+  position: relative;
+  width: 880px;
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-60px) scale(0.35);
+  transition: transform 0.45s cubic-bezier(0.22, 1.35, 0.36, 1);
+}
+#centerRevealOverlay.on .revealStage {
+  transform: translateY(-60px) scale(1);
+}
+.revealRays, .revealRays2 {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: none;
+}
+#centerRevealOverlay[data-rarity="common"] .revealRays {
+  display: block;
+  width: 520px; height: 520px;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.42) 0%, rgba(52, 211, 153, 0.08) 55%, transparent 72%);
+}
+#centerRevealOverlay[data-rarity="rare"] .revealRays {
+  display: block;
+  width: 680px; height: 680px;
+  background: repeating-conic-gradient(from 0deg, rgba(56, 189, 248, 0.34) 0deg 12deg, transparent 12deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 25%, transparent 70%);
+  animation: spinRays 11s linear infinite;
+}
+#centerRevealOverlay[data-rarity="epic"] .revealRays {
+  display: block;
+  width: 820px; height: 820px;
+  background: repeating-conic-gradient(from 0deg, rgba(192, 132, 252, 0.45) 0deg 10deg, transparent 10deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 28%, transparent 72%);
+  mask-image: radial-gradient(circle, #000 28%, transparent 72%);
+  animation: spinRays 8s linear infinite;
+}
+#centerRevealOverlay[data-rarity="epic"] .revealRays2 {
+  display: block;
+  width: 660px; height: 660px;
+  background: repeating-conic-gradient(from 10deg, rgba(250, 204, 21, 0.36) 0deg 8deg, transparent 8deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 20%, transparent 70%);
+  animation: spinRaysRev 12s linear infinite;
+}
+#centerRevealOverlay[data-rarity="legendary"] .revealRays {
+  display: block;
+  width: 980px; height: 980px;
+  background: repeating-conic-gradient(from 0deg, rgba(253, 224, 71, 0.62) 0deg 9deg, transparent 9deg 18deg);
+  -webkit-mask-image: radial-gradient(circle, #000 32%, transparent 74%);
+  mask-image: radial-gradient(circle, #000 32%, transparent 74%);
+  animation: spinRays 6.5s linear infinite;
+}
+#centerRevealOverlay[data-rarity="legendary"] .revealRays2 {
+  display: block;
+  width: 840px; height: 840px;
+  background: repeating-conic-gradient(from 8deg, rgba(249, 115, 22, 0.45) 0deg 8deg, transparent 8deg 22.5deg);
+  -webkit-mask-image: radial-gradient(circle, #000 24%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 24%, transparent 70%);
+  animation: spinRaysRev 9s linear infinite;
+}
+@keyframes spinRays { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes spinRaysRev { to { transform: translate(-50%, -50%) rotate(-360deg); } }
+@keyframes floatGift { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.04); } }
+@keyframes trollWobble { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+
+.revealCard {
+  position: relative;
+  z-index: 2;
+  width: 780px;
+  padding: 28px 34px;
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(20, 24, 46, 0.96), rgba(9, 12, 24, 0.98));
+  border: 4px solid #fde047;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.92), 0 0 60px rgba(250, 204, 21, 0.32);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+#centerRevealOverlay[data-rarity="troll"] .revealCard {
+  border-color: #a3e635;
+  background: linear-gradient(180deg, rgba(44, 66, 18, 0.96), rgba(16, 22, 14, 0.98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 36px rgba(163, 230, 53, 0.28);
+}
+#centerRevealOverlay[data-rarity="common"] .revealCard {
+  border-color: #34d399;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 42px rgba(52, 211, 153, 0.3);
+}
+#centerRevealOverlay[data-rarity="rare"] .revealCard {
+  border-color: #38bdf8;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.92), 0 0 58px rgba(56, 189, 248, 0.45);
+}
+#centerRevealOverlay[data-rarity="epic"] .revealCard {
+  border-color: #c084fc;
+  background: linear-gradient(180deg, rgba(48, 20, 78, 0.96), rgba(14, 10, 28, 0.98));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.94), 0 0 80px rgba(192, 132, 252, 0.58);
+}
+#centerRevealOverlay[data-rarity="legendary"] .revealCard {
+  border-color: #fde047;
+  background: linear-gradient(180deg, rgba(84, 38, 8, 0.97), rgba(22, 12, 8, 0.99));
+  box-shadow: 0 26px 100px rgba(0, 0, 0, 0.96), 0 0 110px rgba(253, 224, 71, 0.72);
+}
+.revBadge {
+  padding: 8px 24px;
+  border-radius: 999px;
+  font: 900 24px/1 var(--body);
+  letter-spacing: 1px;
+  color: #090d16;
+  background: #fde047;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+#centerRevealOverlay[data-rarity="troll"] .revBadge { background: #bef264; }
+#centerRevealOverlay[data-rarity="common"] .revBadge { background: #6ee7b7; }
+#centerRevealOverlay[data-rarity="rare"] .revBadge { background: #7dd3fc; }
+#centerRevealOverlay[data-rarity="epic"] .revBadge { background: linear-gradient(90deg, #e879f9, #fde047); }
+#centerRevealOverlay[data-rarity="legendary"] .revBadge { background: linear-gradient(90deg, #fde047, #fb923c, #fef08a); }
+
+.revVisual {
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, transparent 72%);
+  animation: floatGift 2.4s ease-in-out infinite;
+}
+#centerRevealOverlay[data-rarity="troll"] .revVisual { animation: trollWobble 0.9s ease-in-out infinite; }
+.revVisual .revEmoji { font-size: 146px; line-height: 1; filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)); }
+.revVisual img { width: 205px; height: 205px; object-fit: contain; border-radius: 22px; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.85)); }
+
+.revName { font: 900 40px/1.15 var(--body); color: #ffffff; max-width: 100%; }
+.revXu { font: 900 32px/1 var(--display); color: #fde047; padding: 8px 22px; border-radius: 14px; background: rgba(0, 0, 0, 0.45); border: 1.5px solid rgba(253, 224, 71, 0.5); }
+.revOwner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+}
+.revOwnerAv { position: relative; width: 52px; height: 52px; border-radius: 50%; border: 2px solid #fde047; background: #0f172a; overflow: hidden; display: grid; place-items: center; font: 900 22px/1 var(--body); flex-shrink: 0; }
+.revOwnerAv img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.revOwnerTxt { font: 800 22px/1.2 var(--body); color: #e2e8f0; }
+.mInfo { min-width: 0; flex: 1; }
+.mItemName { font: 800 17px/1.15 var(--body); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mValRow { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.mRarity { font: 800 12px/1 var(--body); padding: 3px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.45); color: #fde68a; }
+.mVal { font: 800 14px/1 var(--display); color: #fbbf24; }
+.mOwner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mOwnerAv {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid #fde047;
+  background: #1e293b;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font: 900 15px/1 var(--body);
+  flex-shrink: 0;
+}
+.mOwnerAv img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mOwnerTxt { min-width: 0; flex: 1; }
+.mOwnerName { font: 800 15px/1.1 var(--body); color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mOwnerBid { font: 600 12px/1.1 var(--body); color: #94a3b8; }
+
+/* Footer HUD */
+#footerHud {
+  position: absolute;
+  top: 1504px;
+  left: 22px;
+  right: 22px;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 14px;
+}
+.battleStatsBox, .legendCard {
+  background: linear-gradient(180deg, rgba(16, 18, 32, 0.95), rgba(8, 10, 20, 0.98));
+  border: 2px solid rgba(246, 201, 84, 0.36);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.teamCounters { font: 800 19px/1.2 var(--body); color: #e2e8f0; display: flex; justify-content: space-between; gap: 8px; }
+.avatarRow { display: flex; gap: 12px; align-items: center; justify-content: space-around; margin: 6px 0; }
+.avSlot { display: flex; flex-direction: column; align-items: center; width: 150px; min-width: 0; }
+.avRank { font: 900 16px/1 var(--body); color: #fef08a; margin-bottom: 3px; }
+.avCircle {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2.5px solid #fbbf24;
+  background: radial-gradient(circle at 35% 30%, #334155, #0f172a);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font: 900 22px/1 var(--body);
+}
+.avCircle img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.avName { margin-top: 3px; max-width: 148px; font: 700 15px/1.15 var(--body); color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.avScore { font: 700 13px/1.1 var(--body); color: #fbbf24; }
+
+#tickerBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 16px/1.25 var(--body);
+  color: #cbd5e1;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+#tickerBox div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.legendTitle { font: 900 22px/1 var(--body); color: #fde047; text-align: center; margin-bottom: 8px; }
+.giftRows { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center; }
+.giftRows.compact { gap: 5px; }
+.giftRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.giftRow img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+.giftRow b { flex: 1; font: 800 18px/1.15 var(--body); color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.giftRow small { font: 800 16px/1 var(--body); color: #fbbf24; white-space: nowrap; }
+
+/* Full Museum & Leaderboard Modal (#result) */
+#result {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 42px;
+  background: rgba(4, 6, 15, 0.84);
+  backdrop-filter: blur(8px);
+}
+#result.on { display: flex; }
+.resCard {
+  width: 100%;
+  max-height: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, #13182b, #0a0d18);
+  border: 3px solid #f6c954;
+  box-shadow: 0 24px 70px #000;
+  pointer-events: auto;
+  overflow: hidden;
+}
+.resCard h1.w { margin: 0; text-align: center; font: 900 38px/1.1 var(--display); color: #fde047; }
+.modalScroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }
+.museumFullGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.giftPodium { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.giftPlace { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1.5px solid rgba(251, 191, 36, 0.35); text-align: center; }
+.giftPlace .miniAv { width: 58px; height: 58px; }
+.giftMedal { font: 800 16px/1 var(--body); color: #fde047; }
+.giftDonor { font: 800 18px/1.1 var(--body); color: #fff; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.giftTotal { font: 900 19px/1 var(--display); color: #fbbf24; }
+.resFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.14); padding-top: 14px; }
+.resActionBtn { border: 0; border-radius: 12px; padding: 12px 20px; font: 800 20px/1 var(--body); cursor: pointer; background: #f59e0b; color: #090d16; }
+.resActionBtn.secondary { background: #334155; color: #f8fafc; }
+
+/* Standalone Control Panel */
+#panel {
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 14px;
+  background: #0f1320;
+  border: 1px solid #262e45;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+#panel h3 { margin: 0 0 6px; font-size: 13px; color: #f6c954; text-transform: uppercase; letter-spacing: .5px; }
+.pGroup { background: #161b2c; border-radius: 10px; padding: 10px; border: 1px solid #242b40; }
+.pRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.pBtn {
+  background: #232b42;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font: 600 12px/1.2 var(--body);
+  cursor: pointer;
+}
+.pBtn:hover { background: #2f3a59; }
+.pBtn.on { background: #f59e0b; color: #090d16; border-color: #fbbf24; }
+#demoPanel { border-color: #826337; }
+#demoPanel p { margin: 6px 0; color: #cbd5e1; line-height: 1.45; }
+#demoPanel #demoCaption { color: #fde7a6; min-height: 2.9em; }
+#stats, #mclog { font-size: 12px; line-height: 1.45; color: #cbd5e1; }
+#mclog { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="box">
+    <div id="stage">
+      <canvas id="bgFxCanvas" width="1080" height="1920"></canvas>
+      <canvas id="gameCanvas" width="1028" height="810"></canvas>
+
+      <div id="ui">
+        <div id="headerBar">
+          <div class="brandWrap">
+            <svg class="crestSvg" viewBox="0 0 120 90" aria-hidden="true">
+              <defs>
+                <linearGradient id="vaultGold" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#fef08a"/>
+                  <stop offset="50%" stop-color="#f59e0b"/>
+                  <stop offset="100%" stop-color="#92400e"/>
+                </linearGradient>
+              </defs>
+              <rect x="14" y="14" width="92" height="66" rx="12" fill="url(#vaultGold)" stroke="#2c1202" stroke-width="5"/>
+              <rect x="26" y="24" width="68" height="46" rx="6" fill="#1e1b2e" stroke="#fde047" stroke-width="3"/>
+              <circle cx="60" cy="47" r="14" fill="#f59e0b" stroke="#fef08a" stroke-width="3"/>
+              <circle cx="60" cy="47" r="5" fill="#dc2626"/>
+            </svg>
+            <div class="brandTitle o">KHO BÁU CONTAINER MÙ</div>
+            <span class="brandTag">ZUONG</span>
+          </div>
+        </div>
+
+        <div id="matchHeaderRow">
+          <div class="phaseBlock">
+            <span class="phasePill" id="phasePill">LÊN HÀNG</span>
+            <span class="roundBadge o" id="roundLabel">VÒNG #1</span>
+          </div>
+          <div class="centerClockBlock">
+            <div class="clockBox o" id="clock">00:18</div>
+            <div class="ptsText" id="snipeSub">Băng chuyền mở khóa rương mù</div>
+          </div>
+          <div class="museumStatBlock">
+            <div class="museumStatTop o" id="museumSummary">🏛️ 0 bảo vật</div>
+            <div class="museumStatSub" id="museumValSub">Tổng trị giá: 0 xu</div>
+          </div>
+        </div>
+
+        <div id="joinRow">
+          <span class="joinPill gold">1 / 2 / 3 CHỌN RƯƠNG</span>
+          <span class="joinDot">·</span>
+          <span class="joinPill cyan">tranh THAM GIA</span>
+          <span class="joinDot">·</span>
+          <span class="joinPill pink">lac / ❤️ LẮC SOI RƯƠNG</span>
+        </div>
+
+        <div id="rotatingGuideArea">
+          <div id="guideScout" class="guidePanel">
+            <div class="shakeRow">
+              <span class="shakeLabel">🫨 LẮC RƯƠNG NGHE TIẾNG</span>
+              <div class="shakeTrack"><div class="shakeFill" id="shakeFill"></div></div>
+              <span class="shakePct o" id="shakePctTxt">0%</span>
+            </div>
+            <div class="clueLine o" id="clueBannerText">Cả phòng thả tim hoặc gõ "lac" để hé lộ độ hiếm bên trong!</div>
+          </div>
+
+          <div id="guideAuction" class="guidePanel" style="display:none;">
+            <div class="auctionHudRow">
+              <div class="leaderPill">
+                <div class="miniAv" id="top1Av">?</div>
+                <div class="leaderTxt">
+                  <b id="top1Name">Chưa có chủ sở hữu · Hãy mở bát!</b>
+                  <span id="top1Bid">Thả quà bất kỳ hoặc gõ "tranh" để chiếm giữ rương</span>
+                </div>
+              </div>
+              <div class="snipeBox" id="snipeAlertBadge">ĐẤU GIÁ MỞ RƯƠNG</div>
+            </div>
+          </div>
+
+          <div id="guideReveal" class="guidePanel" style="display:none;">
+            <div class="clueLine o" id="revealHeadline">🎉 ĐANG MỞ KHÓA CONTAINER BÍ ẨN...</div>
+          </div>
+        </div>
+
+        <div id="mapFrame"></div>
+        <button id="mapRankBtn" type="button" aria-label="Mở Tủ Bảo Tàng">🏛️ TỦ BẢO TÀNG (0)</button>
+
+        <div id="bossToast" class="o"></div>
+        <div id="summonBanner">
+          <div class="sAv" id="sbAv">?</div>
+          <div class="sTxt">
+            <b id="sbTitle">CƯỚP RƯƠNG THÀNH CÔNG!</b>
+            <span id="sbSub">Người thắng đang giữ Két Sắt Rồng Vàng</span>
+          </div>
+          <div class="sCoin" id="sbCoin">🪙 299 xu</div>
+        </div>
+
+        <div id="centerRevealOverlay" data-rarity="legendary" aria-hidden="true">
+          <div class="revealScrim"></div>
+          <div class="revealStage">
+            <div class="revealRays"></div>
+            <div class="revealRays2"></div>
+            <div class="revealCard">
+              <div class="revBadge" id="revBadge">👑 CỰC PHẨM NGHÌN XU</div>
+              <div class="revVisual" id="revVisual"><span class="revEmoji">👑</span></div>
+              <div class="revName o" id="revName">Vương Miện Long Hoàng</div>
+              <div class="revXu" id="revXu">🪙 5.000 xu</div>
+              <div class="revOwner">
+                <div class="revOwnerAv" id="revOwnerAv">?</div>
+                <div class="revOwnerTxt" id="revOwnerTxt">Chủ nhân: Khách · Đã vào Tủ Bảo Tàng!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section id="museumCabinet" aria-label="Tủ Bảo Tàng Phiên Live">
+          <div class="museumHead">
+            <div class="museumTitle o">🏛️ TỦ BẢO TÀNG PHIÊN LIVE · SỞ HỮU SUỐT BUỔI LIVE</div>
+            <div class="museumMeta" id="museumCabinetMeta">0 / 6 ô trưng bày</div>
+          </div>
+          <div class="museumGrid" id="museumGrid"></div>
+        </section>
+
+        <div id="footerHud">
+          <div class="battleStatsBox">
+            <div class="teamCounters">
+              <span id="roomCmtTxt">💬 0 cmt</span>
+              <span id="roomLikeTxt">❤️ 0 tim</span>
+              <span id="roomJoinTxt">🙋 0 tranh rương</span>
+            </div>
+            <div class="avatarRow" id="topHunters"></div>
+            <div id="tickerBox"></div>
+          </div>
+
+          <div class="legendCard">
+            <div class="legendTitle o">QUÀ ĐẤU GIÁ &amp; CƯỚP RƯƠNG</div>
+            <div class="giftRows" id="giftRows"></div>
+          </div>
+        </div>
+
+        <div id="result" aria-hidden="true">
+          <div class="resCard">
+            <h1 class="w">🏛️ TỦ BẢO TÀNG &amp; BXH ĐẤU GIÁ</h1>
+            <div class="modalScroll">
+              <ol class="giftPodium" id="giftPodium"></ol>
+              <div class="museumFullGrid" id="museumFullList"></div>
+            </div>
+            <div class="resFooter">
+              <div id="resFooterTxt" style="font:700 20px/1.2 var(--body);color:#cbd5e1;">Trưng bày toàn bộ vật phẩm đã mở trong buổi LIVE</div>
+              <div style="display:flex;gap:10px;">
+                <button class="resActionBtn" id="resPinBtn" type="button">📌 Giữ Tủ</button>
+                <button class="resActionBtn secondary" id="resCloseBtn" type="button">✕ Đóng</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Standalone Panel -->
+  <aside id="panel">
+    <div class="pGroup" id="demoPanel" hidden>
+      <h3>Demo offline · Kho Báu Container Mù</h3>
+      <button class="pBtn on" id="playDemo" type="button">▶ Chạy lại Demo</button>
+      <p id="demoStep" role="status">Tự động chạy băng chuyền, lắc soi rương, giật 5s cuối &amp; Tủ Bảo Tàng</p>
+      <p id="demoCaption" aria-live="polite">Lời MC hiện ở đây.</p>
+      <h3>Nghe thử hiệu ứng</h3>
+      <div class="pRow">
+        <button class="pBtn" type="button" data-preview-sfx="conveyor">Băng chuyền</button>
+        <button class="pBtn" type="button" data-preview-sfx="shake">Lắc rương</button>
+        <button class="pBtn" type="button" data-preview-sfx="clue">Soi gợi ý</button>
+        <button class="pBtn" type="button" data-preview-sfx="gift">Đẩy giá</button>
+        <button class="pBtn" type="button" data-preview-sfx="steal">Cướp 5s</button>
+        <button class="pBtn" type="button" data-preview-sfx="jackpot">Nổ hũ</button>
+        <button class="pBtn" type="button" data-preview-sfx="troll">Dép tổ ong</button>
+      </div>
+    </div>
+
+    <div class="pGroup">
+      <h3>Điều khiển nhanh (Chế độ độc lập)</h3>
+      <div class="pRow">
+        <button class="pBtn" id="snd">🔇 Bật âm thanh</button>
+        <button class="pBtn" id="newRoundBtn">📦 Vòng mới</button>
+        <button class="pBtn" id="newSessionBtn">↺ Phiên mới</button>
+        <button class="pBtn" id="toggleLeaderboardBtn" type="button">🏛️ Tủ Bảo Tàng</button>
+      </div>
+      <div class="pRow">
+        <button class="pBtn" data-len="45">45s</button>
+        <button class="pBtn on" data-len="60">60s</button>
+        <button class="pBtn" data-len="90">90s</button>
+        <button class="pBtn" data-jump="scout">Soi &amp; Lắc</button>
+        <button class="pBtn" data-jump="auction">Đấu giá</button>
+        <button class="pBtn" data-jump="snipe5s">⚡ 5s Cuối</button>
+        <button class="pBtn" data-jump="reveal">Mở rương</button>
+      </div>
+    </div>
+
+    <div class="pGroup">
+      <h3>Lệnh Comment, Tim &amp; Quà</h3>
+      <div class="pRow">
+        <button class="pBtn" data-act="1">Gõ "1"</button>
+        <button class="pBtn" data-act="2">Gõ "2"</button>
+        <button class="pBtn" data-act="3">Gõ "3"</button>
+        <button class="pBtn" data-act="tranh">Gõ "tranh"</button>
+        <button class="pBtn" data-act="lac">Gõ "lac"</button>
+        <button class="pBtn" data-act="like">❤️ +120 tim</button>
+      </div>
+      <div class="pRow">
+        <button class="pBtn" data-gift="1" data-name="Hoa hồng">🌹 Hoa hồng (1)</button>
+        <button class="pBtn" data-gift="10" data-name="Bó hoa hồng">💐 Bó hoa hồng (10)</button>
+        <button class="pBtn" data-gift="30" data-name="Bánh vòng">🍩 Bánh vòng (30)</button>
+        <button class="pBtn" data-gift="99" data-name="Mũ lưỡi trai">🧢 Mũ lưỡi trai (99)</button>
+        <button class="pBtn" data-gift="299" data-name="Cún Corgi">🐶 Cún Corgi (299)</button>
+      </div>
+      <div class="pRow">
+        <button class="pBtn" id="btnSnipeTest">⚡ Giật 5s</button>
+        <button class="pBtn" id="btnVipTest">🐉 Két Rồng Vàng</button>
+        <button class="pBtn" id="btnJackpotTest">💎 Nổ hũ</button>
+        <button class="pBtn" id="btnTrollTest">🩴 Dép tổ ong</button>
+      </div>
+      <div class="pRow">
+        <button class="pBtn on" data-auto="0">Tắt auto</button>
+        <button class="pBtn" data-auto="12">12 người</button>
+        <button class="pBtn" data-auto="40">40 người</button>
+        <button class="pBtn" data-auto="90">90 người</button>
+      </div>
+    </div>
+
+    <div class="pGroup">
+      <h3>Giọng MC &amp; Thông số</h3>
+      <div class="pRow">
+        <label><input type="checkbox" id="mcOn" checked> Bật MC</label>
+        <select id="mcVoice" aria-label="Chọn giọng MC">
+          <option value="Nam Minh">Nam Minh</option>
+          <option value="Hoài My">Hoài My</option>
+        </select>
+        <button class="pBtn" id="mcTest" type="button">▶ Nghe thử MC</button>
+      </div>
+      <div class="pRow">
+        <label>Tốc độ <input type="range" id="mcSpeed" min="0.9" max="1.5" step="0.05" value="1.15"><span id="mcSpeedV">1.15x</span></label>
+      </div>
+      <div id="mcState" role="status">Sẵn sàng</div>
+      <div id="mclog"></div>
+      <div id="stats" style="margin-top:8px;">Khởi tạo...</div>
+    </div>
+  </aside>
+</div>
+
+<script src="stage-visuals.js"></script>
+<script>
+(() => {
+'use strict';
+
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get('embed') === '1';
+const MUTED = QS.get('mute') === '1';
+const LOCAL_FILE = location.protocol === 'file:';
+const DEMO = !EMBED && (QS.get('demo') === '1' || LOCAL_FILE);
+if (EMBED) document.documentElement.classList.add('embed');
+
+const $ = (id) => document.getElementById(id);
+
+const stageEl = $('stage');
+const boxEl = $('box');
+function fitStage() {
+  const s = Math.min(boxEl.clientWidth / 1080, boxEl.clientHeight / 1920);
+  stageEl.style.transform = `scale(${s})`;
+}
+addEventListener('resize', fitStage);
+fitStage();
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ================= BANNED WORD & NAME FILTER =================
+const BANNED_SET = new Set([
+  'lon', 'lồn', 'lin', 'lìn', 'cac', 'cặc', 'buoi', 'buồi', 'deo', 'đéo', 'dit', 'địt',
+  'du', 'đụ', 'di', 'đĩ', 'cut', 'cứt', 'dm', 'đm', 'dmm', 'đmm', 'dcm', 'đcm',
+  'dkm', 'đkm', 'vcl', 'vkl', 'vcc', 'clgt', 'loz', 'ditme', 'dume', 'cmm',
+  'fuck', 'fck', 'fuk', 'shit', 'bitch', 'dick', 'pussy', 'sex', 'sexy', 'porn', 'nude', 'xxx', 'casino', 'scam',
+]);
+const BANNED_PHRASES = ['địt mẹ', 'đụ má', 'đù má', 'đéo mẹ', 'con đĩ', 'dit me', 'du ma', 'ditme', 'lừa đảo', 'cá độ', 'cờ bạc'];
+function safeName(raw, fallback = 'Thợ Săn') {
+  const s = String(raw || '').normalize('NFC').trim().slice(0, 24);
+  if (!s) return fallback;
+  const low = s.toLowerCase();
+  const compact = low.replace(/[.\-_*]+/g, '');
+  const tokens = low.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
+  const compactTokens = compact.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
+  if (tokens.some((t) => BANNED_SET.has(t)) || compactTokens.some((t) => BANNED_SET.has(t))) return 'Thợ Săn Ẩn Danh';
+  const joined = ` ${tokens.join(' ')} `;
+  if (BANNED_PHRASES.some((p) => joined.includes(` ${p} `))) return 'Thợ Săn Ẩn Danh';
+  return s;
+}
+
+function normalizeAvatarUrl(value) {
+  if (typeof value !== 'string') return '';
+  const source = value.trim();
+  const url = source.startsWith('//') ? 'https:' + source : source;
+  if (!/^https?:\/\//i.test(url)) return '';
+  try {
+    return new URL(url).hostname ? url : '';
+  } catch {
+    return '';
+  }
+}
+
+function avatarHtml(name, avatar) {
+  const letter = escHtml((String(name || '?').trim()[0] || '?').toUpperCase());
+  const url = normalizeAvatarUrl(avatar);
+  return url
+    ? `${letter}<img src="${escHtml(url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
+    : letter;
+}
+
+// ================= CHEST TIERS & MYSTERY LOOT =================
+const TIER_META = {
+  carton:     { name: 'Thùng Carton Móp', short: 'Carton Móp', col: '#d97706', glow: '#fbbf24', rank: 1 },
+  crate:      { name: 'Thùng Gỗ Niêm Phong', short: 'Thùng Gỗ', col: '#b45309', glow: '#f59e0b', rank: 2 },
+  steel:      { name: 'Container Thép', short: 'Container Thép', col: '#0284c7', glow: '#38bdf8', rank: 3 },
+  royal:      { name: 'Rương Hoàng Gia', short: 'Rương Hoàng Gia', col: '#9333ea', glow: '#c084fc', rank: 4 },
+  dragonSafe: { name: 'Két Sắt Rồng Vàng', short: 'Két Rồng Vàng', col: '#eab308', glow: '#fde047', rank: 5 },
+};
+
+const RARITY_LABEL = {
+  troll: 'TROLL!',
+  common: 'THƯỜNG',
+  rare: 'HIẾM',
+  epic: 'CỰC HIẾM',
+  legendary: 'CỰC PHẨM',
+};
+
+const LOOT_ITEMS = [
+  { id: 'dep_to_ong', name: 'Đôi Dép Tổ Ong Huyền Thoại', rarity: 'troll', valueXu: 1, icon: '🩴', clues: ['Lắc nghe tiếng "bẹp bẹp" rất nhẹ… nghi đồ cao su 👀', 'Âm thanh mềm xốp, không có dấu hiệu kim loại!'] },
+  { id: 'banh_trang', name: 'Bịch Bánh Tráng Trộn', rarity: 'troll', valueXu: 5, icon: '🥡', clues: ['Tiếng sột soạt như bao bì nilon hoặc giấy gói!', 'Nhẹ tênh, lắc nghe lạo xạo rất nhanh!'] },
+  { id: 've_so_cu', name: 'Xấp Vé Số Hôm Qua', rarity: 'troll', valueXu: 2, icon: '🎫', clues: ['Nghe tiếng giấy cọ xát khe khẽ bên trong…', 'Rất nhẹ! Không nghe thấy vật cứng nào.'] },
+  { id: 'la_ban', name: 'La Bàn Hải Tặc Cổ', rarity: 'common', valueXu: 120, icon: '🧭', clues: ['Có vật tròn bằng đồng lăn lóc bên trong!', 'Tiếng kim loại chạm thành rương khá thanh.'] },
+  { id: 'tui_xu', name: 'Túi Tiền Vàng Cảng Biển', rarity: 'rare', valueXu: 380, icon: '💰', clues: ['Tiếng leng keng rủng rỉnh! Nhiều đồng xu va vào nhau!', 'Âm thanh kim loại dày đặc khi lắc mạnh!'] },
+  { id: 'dong_ho', name: 'Đồng Hồ Cơ Hoàng Kim', rarity: 'rare', valueXu: 650, icon: '⌚', clues: ['Nghe tiếng tích tắc mơ hồ kèm khung thép nặng!', 'Phản xạ ánh vàng lấp ló qua tia quét!'] },
+  { id: 'thoi_vang', name: 'Thỏi Vàng 9999 Nguyên Khối', rarity: 'epic', valueXu: 1500, icon: '🪙', clues: ['Nặng trịch! Lắc muốn gãy tay mà bên trong mới nhúc nhích!', 'Âm trầm đục cực nặng — nghi kim loại quý nguyên khối!'] },
+  { id: 'kim_cuong', name: 'Viên Kim Cương Đại Dương', rarity: 'epic', valueXu: 2400, icon: '💎', clues: ['Phát ra tiếng ngân trong veo như pha lê!', 'Tia quét báo khúc xạ xanh lam cực mạnh!'] },
+  { id: 'vuong_mien', name: 'Vương Miện Long Hoàng', rarity: 'legendary', valueXu: 5000, icon: '👑', clues: ['BÁO ĐỘNG CỰC PHẨM! Tiếng đá quý + vàng ròng vang dội!', 'Tần số cộng hưởng hoàng kim cực đại!'] },
+  { id: 'ngoc_ty', name: 'Ngọc Tỷ Rồng Vàng Nghìn Xu', rarity: 'legendary', valueXu: 8888, icon: '🐉', clues: ['RUNG CHUYỂN BĂNG CHUYỀN! Có luồng năng lượng rồng!', 'Âm vang uy lực nghìn xu! Rương này cực khủng!'] },
+];
+
+const TIER_WEIGHTS = {
+  carton:     { dep_to_ong: 34, banh_trang: 24, ve_so_cu: 18, la_ban: 14, tui_xu: 6, thoi_vang: 3, vuong_mien: 1 },
+  crate:      { dep_to_ong: 18, banh_trang: 14, la_ban: 28, tui_xu: 22, dong_ho: 10, thoi_vang: 6, kim_cuong: 2 },
+  steel:      { dep_to_ong: 10, la_ban: 16, tui_xu: 26, dong_ho: 24, thoi_vang: 14, kim_cuong: 7, vuong_mien: 3 },
+  royal:      { dep_to_ong: 6, tui_xu: 16, dong_ho: 20, thoi_vang: 24, kim_cuong: 18, vuong_mien: 11, ngoc_ty: 5 },
+  dragonSafe: { dep_to_ong: 5, dong_ho: 8, thoi_vang: 22, kim_cuong: 24, vuong_mien: 24, ngoc_ty: 17 },
+};
+
+let CUSTOM_LOOT = [];
+
+function setCustomLoot(items) {
+  if (!Array.isArray(items)) return;
+  CUSTOM_LOOT = items.filter((x) => x && x.name);
+}
+
+const CUSTOM_CLUES = {
+  troll: ['Lắc nhẹ tênh, nghe bẹp bẹp hơi nghi… 👀'],
+  common: ['Nghe tiếng lách cách nho nhỏ bên trong!'],
+  rare: ['Tiếng kim loại sáng vang rất bắt tai!'],
+  epic: ['Âm vang trầm đục — có món đồ cực giá trị!'],
+  legendary: ['BÁO ĐỘNG CỰC PHẨM! Ánh sáng chói lòa khe rương!'],
+};
+
+function pickLootForTier(tier) {
+  const weights = { ...(TIER_WEIGHTS[tier] || TIER_WEIGHTS.carton) };
+  const activeCustom = CUSTOM_LOOT.filter((x) => x.enabled !== false);
+  const customMap = new Map();
+  for (const c of activeCustom) {
+    // Phân bổ trọng số hợp lý theo hạng rương để vật phẩm thủ công thực sự xuất hiện trong trận
+    let w = 0;
+    if (tier === 'carton') w = c.rarity === 'troll' || c.rarity === 'common' ? 20 : 4;
+    else if (tier === 'crate') w = c.rarity === 'common' || c.rarity === 'rare' ? 18 : 6;
+    else if (tier === 'steel') w = c.rarity === 'rare' || c.rarity === 'epic' ? 18 : 7;
+    else if (tier === 'royal') w = c.rarity === 'epic' || c.rarity === 'legendary' ? 20 : 8;
+    else w = c.rarity === 'legendary' || c.rarity === 'epic' ? 24 : 5;
+    weights[c.id] = w;
+    customMap.set(c.id, {
+      id: c.id,
+      name: c.name,
+      rarity: c.rarity,
+      valueXu: Number(c.valueXu) || 0,
+      icon: c.icon || '🎁',
+      imageUrl: c.imageUrl || '',
+      clues: CUSTOM_CLUES[c.rarity] || CUSTOM_CLUES.rare,
+    });
+  }
+  const entries = Object.entries(weights);
+  const total = entries.reduce((acc, [, w]) => acc + w, 0);
+  let r = Math.random() * total;
+  for (const [id, w] of entries) {
+    r -= w;
+    if (r <= 0) return customMap.get(id) || LOOT_ITEMS.find((x) => x.id === id) || LOOT_ITEMS[0];
+  }
+  return LOOT_ITEMS[0];
+}
+
+// ================= GIFT RULES SYNC =================
+const TIER_DEFAULT_ICON = {
+  bidSmall: 'img/game/gift_rose.webp',
+  shakeBid: 'img/game/gift_rosa.webp',
+  bidMid: 'img/game/gift_doughnut.webp',
+  snipeBoost: 'img/game/gift_cap.webp',
+  vipSteal: 'img/game/gift_corgi.webp',
+};
+
+let GIFT_RULES = [
+  { id: 'gift_bid_small', title: 'Đẩy Giá Nhanh', tier: 'bidSmall', count: 1, enabled: true, giftId: 5655, giftName: 'Hoa hồng', aliases: ['Rose'], diamondCount: 1, iconUrl: 'img/game/gift_rose.webp' },
+  { id: 'gift_shake_bid', title: 'Lắc & Soi Rương', tier: 'shakeBid', count: 1, enabled: true, giftId: 8913, giftName: 'Bó hoa hồng', aliases: ['Rosa', 'Hoa hồng tươi', 'Quà cấp 2', 'Kem', 'Tim'], diamondCount: 10, iconUrl: 'img/game/gift_rosa.webp' },
+  { id: 'gift_bid_mid', title: 'Đột Kích Đấu Giá', tier: 'bidMid', count: 1, enabled: true, giftId: 5879, giftName: 'Bánh vòng', aliases: ['Doughnut', 'Donut', 'Bánh rán'], diamondCount: 30, iconUrl: 'img/game/gift_doughnut.webp' },
+  { id: 'gift_snipe_boost', title: 'Đòn Giật 5s Cuối (+20%)', tier: 'snipeBoost', count: 1, enabled: true, giftId: 6104, giftName: 'Mũ lưỡi trai', aliases: ['Cap', 'Mũ', 'Nón kết'], diamondCount: 99, iconUrl: 'img/game/gift_cap.webp' },
+  { id: 'gift_vip_dragon', title: 'Nâng Cấp Két Rồng Vàng', tier: 'vipSteal', count: 1, enabled: true, giftId: 6267, giftName: 'Cún Corgi', aliases: ['Corgi', 'Chó Corgi'], diamondCount: 299, iconUrl: 'img/game/gift_corgi.webp' },
+];
+
+let GIFT_BY_ID = new Map();
+let GIFT_EXACT_NAME = new Map();
+let GIFT_SORTED_ENABLED = [];
+
+function rebuildGiftIndex() {
+  GIFT_BY_ID = new Map();
+  GIFT_EXACT_NAME = new Map();
+  const enabled = [];
+  for (const r of GIFT_RULES) {
+    const gid = Number(r.giftId) || 0;
+    if (gid > 0 && !GIFT_BY_ID.has(gid)) GIFT_BY_ID.set(gid, r);
+    const gn = String(r.giftName || '').trim().toLowerCase();
+    if (gn && !GIFT_EXACT_NAME.has(gn)) GIFT_EXACT_NAME.set(gn, r);
+    if (Array.isArray(r.aliases)) {
+      for (const a of r.aliases) {
+        const al = String(a || '').trim().toLowerCase();
+        if (al && !GIFT_EXACT_NAME.has(al)) GIFT_EXACT_NAME.set(al, r);
+      }
+    }
+    if (r.enabled) enabled.push(r);
+  }
+  GIFT_SORTED_ENABLED = enabled.sort((a, b) => (b.diamondCount || 0) - (a.diamondCount || 0));
+}
+rebuildGiftIndex();
+
+function renderGiftLegend() {
+  const el = $('giftRows');
+  if (!el) return;
+  const active = GIFT_RULES.filter((r) => r.enabled && (r.giftId || r.giftName));
+  el.classList.toggle('compact', active.length > 5);
+  if (active.length === 0) {
+    el.innerHTML = '<div class="giftRow"><b>Chưa bật quà đấu giá</b><small>Mở bảng điều khiển</small></div>';
+    return;
+  }
+  el.innerHTML = active.slice(0, 6).map((r) => {
+    const fb = TIER_DEFAULT_ICON[r.tier] || 'img/game/gift_rose.webp';
+    const icon = r.iconUrl || fb;
+    return `<div class="giftRow"><img src="${escHtml(icon)}" referrerpolicy="no-referrer" onerror="this.src='${fb}'" alt="${escHtml(r.giftName)}"><b>${escHtml(r.title)}</b><small>${escHtml(r.giftName || '')} · ${r.diamondCount} xu</small></div>`;
+  }).join('');
+}
+
+function setGiftRules(next) {
+  if (!Array.isArray(next)) return;
+  GIFT_RULES = next.filter((r) => r && TIER_DEFAULT_ICON[r.tier]);
+  rebuildGiftIndex();
+  renderGiftLegend();
+}
+
+function resolveGiftRule(giftName, coins, giftId) {
+  const gid = Number(giftId) || 0;
+  if (gid > 0) {
+    const byId = GIFT_BY_ID.get(gid);
+    if (byId) return byId.enabled ? byId : null;
+  }
+  const g = String(giftName || '').trim().toLowerCase();
+  if (g) {
+    const exact = GIFT_EXACT_NAME.get(g);
+    if (exact) return exact.enabled ? exact : null;
+    const byName = GIFT_RULES.find((r) => {
+      const gn = String(r.giftName || '').trim().toLowerCase();
+      if (gn && (g.includes(gn) || gn.includes(g))) return true;
+      return Array.isArray(r.aliases) && r.aliases.some((a) => {
+        const al = String(a || '').trim().toLowerCase();
+        return al && g.includes(al);
+      });
+    });
+    if (byName) return byName.enabled ? byName : null;
+  }
+  if (!GIFT_SORTED_ENABLED.length) return null;
+  const c = Math.max(0, Number(coins) || 0);
+  return GIFT_SORTED_ENABLED.find((r) => (r.diamondCount || 0) <= c) || GIFT_SORTED_ENABLED[GIFT_SORTED_ENABLED.length - 1];
+}
+
+// ================= SOUND & MC VOICE =================
+const SND = {
+  bgm:      ['bgm.wav', 0, .14, 0],
+  conveyor: ['conveyor.wav', .6, .35, 1],
+  shake:    ['shake.wav', .28, .34, 1],
+  heart:    ['heart.wav', .35, .28, 1],
+  clue:     ['clue.wav', .5, .42, 2],
+  gift:     ['gift.wav', .25, .42, 2],
+  tick:     ['tick.wav', .4, .36, 3],
+  steal:    ['steal.wav', .5, .58, 5],
+  open:     ['open.wav', .6, .48, 4],
+  jackpot:  ['jackpot.wav', 1.2, .62, 6],
+  troll:    ['troll.wav', 1.0, .54, 5],
+  win:      ['win.wav', 1.0, .52, 5],
+};
+const VOICE_LEVEL = .78;
+const MUSIC_DUCK = .24;
+const SFX_DUCK = .22;
+let AC = null, sndOn = false, master = null, fxGain = null, bgmGain = null;
+let voiceDucked = false, soundsLoading = null, previewAudio = null;
+const lastSfx = new Map();
+let activeSfx = null;
+const BUF = {};
+const FILE_AUDIO = {};
+const VOL = { music: 0.45, sfx: 1, mc: 1 };
+
+function soundUrl(file) { return 'sound/' + file + '?v=1'; }
+
+function loadSounds() {
+  soundsLoading ??= Promise.all(Object.entries(SND).map(async ([key, [file]]) => {
+    try {
+      const r = await fetch(soundUrl(file));
+      if (r.ok) BUF[key] = await AC.decodeAudioData(await r.arrayBuffer());
+    } catch { /* ignore */ }
+  }));
+  return soundsLoading;
+}
+
+function stopEffect() { const e = activeSfx; activeSfx = null; e?.stop(); }
+function stopPreview() {
+  if (!previewAudio) return;
+  previewAudio.pause();
+  previewAudio = null;
+  duck(voiceDucked);
+}
+
+function previewSfx(name) {
+  if (MUTED || !SND[name]) return;
+  previewAudio?.pause();
+  const [file, , volume] = SND[name];
+  const audio = new Audio(soundUrl(file));
+  previewAudio = audio;
+  stopEffect();
+  mc.active?.abort();
+  duck(voiceDucked);
+  audio.volume = volume;
+  const done = () => { if (previewAudio !== audio) return; stopPreview(); mcNext(); };
+  audio.onended = audio.onerror = done;
+  void audio.play().catch(done);
+}
+
+function sfx(name) {
+  if (!sndOn || previewAudio || VOL.sfx <= 0 || MUTED || !SND[name]) return;
+  if (LOCAL_FILE ? !FILE_AUDIO[name] : !BUF[name]) return;
+  const [, gap, base, priority] = SND[name];
+  const now = performance.now() / 1000;
+  if (now - (lastSfx.get(name) ?? -Infinity) < gap) return;
+  if (activeSfx && priority < activeSfx.priority) return;
+  stopEffect();
+  lastSfx.set(name, now);
+  const effect = { name, priority, stop: () => {} };
+  const ended = () => { if (activeSfx === effect) activeSfx = null; };
+  activeSfx = effect;
+  if (LOCAL_FILE) {
+    const audio = FILE_AUDIO[name];
+    effect.stop = () => { audio.pause(); audio.currentTime = 0; };
+    audio.currentTime = 0;
+    audio.volume = base * VOL.sfx * (voiceDucked ? SFX_DUCK : 1);
+    audio.onended = audio.onerror = ended;
+    void audio.play().catch(ended);
+    return;
+  }
+  const src = AC.createBufferSource();
+  const gain = AC.createGain();
+  src.buffer = BUF[name];
+  gain.gain.value = base;
+  src.connect(gain).connect(fxGain);
+  effect.stop = () => {
+    try { gain.gain.setTargetAtTime(0, AC.currentTime, .006); src.stop(AC.currentTime + .035); } catch {}
+  };
+  src.onended = () => { src.disconnect(); gain.disconnect(); ended(); };
+  src.start();
+}
+
+function duck(on) {
+  voiceDucked = on;
+  const music = sndOn && !previewAudio ? SND.bgm[2] * VOL.music * (on ? MUSIC_DUCK : 1) : 0;
+  const effects = sndOn && !previewAudio ? VOL.sfx * (on ? SFX_DUCK : 1) : 0;
+  if (LOCAL_FILE) {
+    if (FILE_AUDIO.bgm) FILE_AUDIO.bgm.volume = music;
+    if (activeSfx) FILE_AUDIO[activeSfx.name].volume = SND[activeSfx.name][2] * effects;
+    return;
+  }
+  if (bgmGain && AC) bgmGain.gain.setTargetAtTime(music, AC.currentTime, on ? .025 : .14);
+  if (fxGain && AC) fxGain.gain.setTargetAtTime(effects, AC.currentTime, on ? .012 : .09);
+}
+
+async function soundOn(on) {
+  if (MUTED) return;
+  sndOn = on;
+  if (!on) {
+    stopPreview(); stopEffect();
+    for (const audio of Object.values(FILE_AUDIO)) audio.pause();
+    stopVoice(); duck(false);
+    return;
+  }
+  if (LOCAL_FILE) {
+    for (const [name, [file]] of Object.entries(SND)) FILE_AUDIO[name] ??= new Audio(soundUrl(file));
+    FILE_AUDIO.bgm.loop = true;
+    duck(voiceDucked);
+    await FILE_AUDIO.bgm.play().catch(() => {});
+    return;
+  }
+  try {
+    AC ??= new (window.AudioContext || window.webkitAudioContext)();
+    await AC.resume();
+  } catch { sndOn = false; return; }
+  if (!sndOn) return;
+  if (!master) {
+    master = AC.createGain();
+    const limiter = AC.createDynamicsCompressor();
+    limiter.threshold.value = -3.5;
+    master.connect(limiter).connect(AC.destination);
+    fxGain = AC.createGain();
+    fxGain.gain.value = VOL.sfx * (voiceDucked ? SFX_DUCK : 1);
+    fxGain.connect(master);
+  }
+  await loadSounds();
+  if (!sndOn) return;
+  if (!bgmGain && BUF.bgm) {
+    const loop = AC.createBufferSource();
+    bgmGain = AC.createGain();
+    loop.buffer = BUF.bgm;
+    loop.loop = true;
+    bgmGain.gain.value = 0;
+    loop.connect(bgmGain).connect(master);
+    loop.start();
+  }
+  duck(voiceDucked);
+}
+
+const EDGE_VOICES = { 'Nam Minh': 'm', 'Hoài My': 'f' };
+const mc = { q: [], busy: false, speaker: !EMBED && !MUTED, audio: null, active: null };
+const mcPrefs = { mcOn: '1', mcVoice: 'Nam Minh', mcSpeed: '1.15', mcExpr: '0.95' };
+
+function mcSay(text, prio = 1) {
+  if (MUTED || !mc.speaker || mcPrefs.mcOn === '0' || !text) return;
+  mc.q.push({ text, prio, at: performance.now() });
+  mc.q.sort((a, b) => b.prio - a.prio || a.at - b.at);
+  if (mc.q.length > 4) mc.q.length = 4;
+  mcNext();
+}
+
+function stopVoice() { mc.q.length = 0; mc.active?.abort(); }
+
+function playVoice(audio, signal) {
+  return new Promise((resolve, reject) => {
+    function finish(err) {
+      clearTimeout(timeout);
+      signal.removeEventListener('abort', cancel);
+      audio.onended = audio.onerror = null;
+      if (err) reject(err); else resolve();
+    }
+    function cancel() { finish(signal.reason); }
+    const timeout = setTimeout(() => finish(new Error('MC timeout')), 20000);
+    audio.onended = () => finish();
+    audio.onerror = () => finish(new Error('Audio error'));
+    signal.addEventListener('abort', cancel, { once: true });
+    audio.play().catch(finish);
+  });
+}
+
+async function mcNext() {
+  if (previewAudio || mc.busy || mcPrefs.mcOn === '0' || !mc.speaker || MUTED) return;
+  let line;
+  while ((line = mc.q.shift()) && performance.now() - line.at > 20000);
+  if (!line) return;
+  mc.busy = true;
+  const active = new AbortController();
+  mc.active = active;
+  let url, voiceSource;
+  const reqTimeout = setTimeout(() => active.abort(new Error('TTS timeout')), 9000);
+  try {
+    if (DEMO) {
+      clearTimeout(reqTimeout);
+      await speakDemoLine(line.text, active.signal);
+      return;
+    }
+    const v = mcPrefs.mcVoice || 'Nam Minh';
+    const edge = EDGE_VOICES[v];
+    const q = new URLSearchParams(edge
+      ? { v: edge, rate: mcPrefs.mcSpeed, text: line.text }
+      : { eng: 'vn', voice: v, temp: mcPrefs.mcExpr, text: line.text });
+    const response = await fetch('/api/tts?' + q, { signal: active.signal });
+    if (!response.ok) throw new Error('TTS HTTP ' + response.status);
+    const blob = await response.blob();
+    clearTimeout(reqTimeout);
+    if (active.signal.aborted) return;
+    url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    mc.audio = audio;
+    audio.preservesPitch = true;
+    audio.playbackRate = edge ? 1 : Number(mcPrefs.mcSpeed) || 1.15;
+    audio.volume = VOL.mc * VOICE_LEVEL;
+    if (master && AC?.state === 'running') {
+      voiceSource = AC.createMediaElementSource(audio);
+      voiceSource.connect(master);
+    }
+    duck(true);
+    if ($('mcState')) $('mcState').textContent = '🗣 ' + line.text.slice(0, 42);
+    await playVoice(audio, active.signal);
+  } catch (e) {
+    if (e?.name !== 'AbortError' && $('mcState')) $('mcState').textContent = '⚠ ' + String(e?.message || e).slice(0, 40);
+  } finally {
+    clearTimeout(reqTimeout);
+    mc.audio?.pause();
+    voiceSource?.disconnect();
+    if (url) URL.revokeObjectURL(url);
+    mc.audio = null; mc.active = null;
+    duck(false); mc.busy = false;
+    setTimeout(mcNext, 240);
+  }
+}
+
+function speakDemoLine(text, signal) {
+  if ($('demoCaption')) $('demoCaption').textContent = text;
+  const speech = window.speechSynthesis;
+  const voice = speech?.getVoices().find((v) => v.localService && /^vi(?:-|$)/i.test(v.lang));
+  if (signal.aborted) return Promise.resolve();
+  if (!voice || !sndOn) return Promise.resolve();
+  return new Promise((resolve) => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = voice; u.lang = voice.lang;
+    u.rate = Number(mcPrefs.mcSpeed) || 1;
+    u.volume = VOL.mc * VOICE_LEVEL;
+    function finish() { clearTimeout(t); signal.removeEventListener('abort', cancel); resolve(); }
+    function cancel() { speech.cancel(); finish(); }
+    const t = setTimeout(cancel, 12000);
+    signal.addEventListener('abort', cancel, { once: true });
+    u.onend = u.onerror = finish;
+    duck(true);
+    speech.speak(u);
+  });
+}
+
+// ================= CORE GAME STATE: KHO BÁU CONTAINER MÙ =================
+const bgCtx = $('bgFxCanvas').getContext('2d');
+const ctx = $('gameCanvas').getContext('2d');
+const W = 1028, H = 810;
+
+const STORAGE_KEY = 'kho-bau-container.session.v1';
+let roundTotalSec = 60;
+let graphics = 'full';
+let gameNow = 0;
+let fpsFrames = 0, fpsShown = 60, frameP95 = 0;
+const frameCosts = [];
+let manualLeaderboardOpen = false;
+let pendingGifts = [];
+let uiDirty = false;
+let lastGiftFxMs = 0;
+
+function markUiDirty() {
+  uiDirty = true;
+}
+
+let S = null;
+
+function createChestLineup() {
+  // Đảm bảo mỗi vòng luôn có đủ tương phản: từ Thùng Carton Móp -> Hàng trung -> Két Vàng / Hoàng Gia!
+  const pools = [
+    ['carton', 'steel', 'dragonSafe'],
+    ['carton', 'crate', 'royal'],
+    ['crate', 'steel', 'dragonSafe'],
+    ['carton', 'royal', 'dragonSafe'],
+  ];
+  const chosen = pools[Math.floor(Math.random() * pools.length)];
+  // Trộn thứ tự ngẫu nhiên để người xem đoán 1 / 2 / 3 hào hứng hơn
+  const tiers = [...chosen].sort(() => Math.random() - 0.5);
+  return tiers.map((tier, idx) => {
+    const loot = pickLootForTier(tier);
+    return {
+      slot: idx + 1,
+      tier,
+      loot,
+      votes: 0,
+      voters: [],
+      shake: 0,
+      clueIdx: 0,
+      clues: [],
+      openAmt: 0,
+      xOffset: -900 - idx * 240,
+    };
+  });
+}
+
+function loadSessionData() {
+  if (EMBED) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      if (saved && Array.isArray(saved.museum)) {
+        return {
+          museum: saved.museum,
+          round: Number(saved.round) || 0,
+        };
+      }
+    } catch { /* ignore */ }
+  }
+  return { museum: [], round: 0 };
+}
+
+function saveSessionData() {
+  if (!EMBED || !S) return;
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      museum: S.museum.slice(0, 60),
+      round: S.round,
+    }));
+  } catch { /* ignore */ }
+}
+
+function initSession(restoreStorage = false, clearStorage = false) {
+  if (clearStorage && EMBED) {
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }
+  if (clearStorage) {
+    pendingGifts = [];
+    const rEl = $('result');
+    if (rEl) {
+      rEl.classList.remove('on');
+      rEl.setAttribute('aria-hidden', 'true');
+    }
+    manualLeaderboardOpen = false;
+  }
+  const saved = restoreStorage ? loadSessionData() : { museum: [], round: 0 };
+  S = {
+    round: saved.round,
+    phase: 'conveyor',
+    phaseTimer: 3.2,
+    conveyorScroll: 0,
+    chests: [],
+    selectedSlot: 1,
+    shakeMeter: 0,
+    cluesRevealed: 0,
+    snipeCount: 0,
+    lastTickSec: -1,
+    roundBids: new Map(), // userId -> { id, name, spokenName, avatar, xu, joinedAt }
+    players: new Map(),   // session players -> { id, name, spokenName, avatar, cmt, totalXu }
+    giftTotals: new Map(), // Quà tặng chỉ tính trong 1 vòng đấu, reset mỗi vòng
+    museum: saved.museum, // [{ item, rarity, valueXu, icon, ownerName, ownerAvatar, bidXu, round, at }]
+    cmtTotal: 0,
+    likesTotal: 0,
+    tickers: [],
+    popups: [],
+    beams: [],
+    particles: [],
+    bolts: [],
+    shockwaves: [],
+    shakeScreen: 0,
+    flash: null,
+    revealDone: false,
+    revealOutcome: null,
+  };
+  const revEl = $('centerRevealOverlay');
+  if (revEl) { revEl.classList.remove('on'); revEl.setAttribute('aria-hidden', 'true'); }
+  startNewRound();
+}
+
+function phaseDurations() {
+  const base = Math.max(30, roundTotalSec);
+  const conveyor = 3.2;
+  const reveal = 6.5;
+  const rem = Math.max(20, base - conveyor - reveal);
+  return {
+    conveyor,
+    scout: Math.round(rem * 0.36),
+    auction: Math.round(rem * 0.64),
+    reveal,
+  };
+}
+
+function startNewRound() {
+  if (!S) return;
+  const dur = phaseDurations();
+  S.round++;
+  S.phase = 'conveyor';
+  S.phaseTimer = dur.conveyor;
+  S.chests = createChestLineup();
+  S.selectedSlot = 1;
+  S.shakeMeter = 0;
+  S.cluesRevealed = 0;
+  S.snipeCount = 0;
+  S.lastTickSec = -1;
+  S.roundBids.clear();
+  S.giftTotals.clear();
+  for (const p of S.players.values()) {
+    p.totalXu = 0;
+    p.votedSlot = 0;
+  }
+  S.revealDone = false;
+  S.revealOutcome = null;
+  S.bolts.length = 0;
+  if (S.shockwaves) S.shockwaves.length = 0;
+  const revEl = $('centerRevealOverlay');
+  if (revEl) { revEl.classList.remove('on'); revEl.setAttribute('aria-hidden', 'true'); }
+
+  // Chọn sẵn slot cao cấp nhất làm mặc định nếu chưa có vote
+  const best = [...S.chests].sort((a, b) => TIER_META[b.tier].rank - TIER_META[a.tier].rank)[0];
+  S.selectedSlot = best ? best.slot : 1;
+
+  sfx('conveyor');
+  addTicker(`📦 Chuyến hàng vòng #${S.round} đang lên băng chuyền! Gõ 1/2/3 chọn rương.`);
+  toastBanner(`📦 VÒNG #${S.round} · GÕ 1 / 2 / 3 CHỌN RƯƠNG!`);
+  if (mc.speaker) mcSay(`Chuyến hàng vòng ${S.round} vừa lên băng chuyền! Gõ 1, 2 hoặc 3 chọn rương và thả tim lắc nghe tiếng ngay nào!`, 3);
+
+  drainPendingGifts();
+  saveSessionData();
+  updateUI();
+}
+
+function drainPendingGifts() {
+  if (!S || S.phase === 'reveal' || pendingGifts.length === 0) return;
+  const batch = pendingGifts;
+  pendingGifts = [];
+  for (let i = 0; i < batch.length; i++) {
+    onGift(batch[i]);
+  }
+}
+
+function addTicker(text) {
+  if (!S) return;
+  S.tickers.unshift(text);
+  if (S.tickers.length > 4) S.tickers.length = 4;
+}
+
+function toastBanner(text) {
+  const el = $('bossToast');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 2800);
+}
+
+function showBigBanner({ title, sub, coinText, avatar, name, mode = '' }) {
+  const el = $('summonBanner');
+  if (!el) return;
+  el.className = mode ? `on ${mode}` : 'on';
+  $('sbTitle').textContent = title;
+  $('sbSub').textContent = sub;
+  $('sbCoin').textContent = coinText || '';
+  $('sbCoin').style.display = coinText ? 'block' : 'none';
+  const avEl = $('sbAv');
+  const avKey = `${name || '?'}|${avatar || ''}`;
+  if (avEl.dataset.avKey !== avKey) {
+    avEl.dataset.avKey = avKey;
+    avEl.innerHTML = avatarHtml(name || '?', avatar);
+  }
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 3400);
+}
+
+function spawnPopup(x, y, text, color = '#fde047', size = 24) {
+  if (!S) return;
+  S.popups.push({ x, y, text, color, size, vy: -52, life: 1.45, max: 1.45 });
+  if (S.popups.length > 30) S.popups.shift();
+}
+
+function burst(x, y, col, n = 26, spdMul = 1.4) {
+  if (!S) return;
+  const room = Math.max(0, 400 - S.particles.length);
+  if (room === 0) return;
+  const count = Math.min(room, graphics === 'lite' ? Math.ceil(n * 0.5) : n);
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = (60 + Math.random() * 210) * spdMul;
+    S.particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - 40,
+      r: 3 + Math.random() * 5,
+      col,
+      life: 0.6 + Math.random() * 0.7,
+      max: 1.2,
+    });
+  }
+}
+
+function spawnLightning(x0, y0, x1, y1, col = '#fde047') {
+  if (!S) return;
+  const pts = [{ x: x0, y: y0 }];
+  for (let i = 1; i < 6; i++) {
+    const t = i / 6;
+    pts.push({
+      x: x0 + (x1 - x0) * t + (Math.random() - 0.5) * 70,
+      y: y0 + (y1 - y0) * t + (Math.random() - 0.5) * 35,
+    });
+  }
+  pts.push({ x: x1, y: y1 });
+  S.bolts.push({ pts, col, life: 0.55, max: 0.55 });
+  if (S.bolts.length > 16) S.bolts.shift();
+}
+
+function getActiveChest() {
+  if (!S || !S.chests.length) return null;
+  return S.chests.find((c) => c.slot === S.selectedSlot) || S.chests[0];
+}
+
+function getTopBidder() {
+  if (!S || S.roundBids.size === 0) return null;
+  let best = null;
+  for (const b of S.roundBids.values()) {
+    if (!best || b.xu > best.xu || (b.xu === best.xu && b.joinedAt < best.joinedAt)) {
+      best = b;
+    }
+  }
+  return best;
+}
+
+function getSortedBidders() {
+  if (!S) return [];
+  return [...S.roundBids.values()].sort((a, b) => b.xu - a.xu || a.joinedAt - b.joinedAt);
+}
+
+function ensurePlayer(ev) {
+  const id = String(ev.user || ev.name || 'khach').trim().toLowerCase();
+  const name = safeName(ev.name || ev.user || 'Thợ Săn');
+  const avatar = normalizeAvatarUrl(ev.avatar);
+  let p = S.players.get(id);
+  if (!p) {
+    p = { id, name, spokenName: ev.spokenName || name, avatar, cmt: 0, totalXu: 0, votedSlot: 0 };
+    S.players.set(id, p);
+  } else {
+    if (name && name !== 'Thợ Săn Ẩn Danh') p.name = name;
+    if (ev.spokenName) p.spokenName = ev.spokenName;
+    if (avatar) p.avatar = avatar;
+  }
+  return p;
+}
+
+function ensureContender(p) {
+  let b = S.roundBids.get(p.id);
+  if (!b) {
+    b = { id: p.id, name: p.name, spokenName: p.spokenName, avatar: p.avatar, xu: 0, joinedAt: performance.now() };
+    S.roundBids.set(p.id, b);
+    return { entry: b, isNew: true };
+  }
+  b.name = p.name;
+  if (p.avatar) b.avatar = p.avatar;
+  return { entry: b, isNew: false };
+}
+
+function triggerShakeAndClue(amount, reasonName, forceClue = false) {
+  if (!S) return;
+  const prevTier = Math.floor(S.shakeMeter / 33.34);
+  S.shakeMeter = Math.min(100, S.shakeMeter + amount);
+  const nextTier = Math.floor(S.shakeMeter / 33.34);
+
+  for (const c of S.chests) {
+    c.shake = Math.min(1.3, c.shake + 0.55);
+  }
+  sfx('shake');
+
+  const active = getActiveChest();
+  const shouldReveal = forceClue || nextTier > prevTier;
+  if (shouldReveal && S.cluesRevealed < 3) {
+    S.cluesRevealed++;
+    // Hé lộ gợi ý mơ hồ cho rương nổi bật hoặc từng rương 1->2->3
+    const target = S.phase === 'auction' && active
+      ? active
+      : S.chests[(S.cluesRevealed - 1) % S.chests.length] || active;
+    if (target) {
+      const clueIdx = Math.min(target.loot.clues.length - 1, target.clueIdx);
+      const clueTxt = target.loot.clues[clueIdx];
+      target.clueIdx++;
+      if (!target.clues.includes(clueTxt)) target.clues.push(clueTxt);
+      sfx('clue');
+      toastBanner(`🔊 Rương #${target.slot}: ${clueTxt}`);
+      addTicker(`🔊 Soi Rương #${target.slot}: ${clueTxt}`);
+      if ($('clueBannerText')) $('clueBannerText').textContent = `🔊 Gợi ý Rương #${target.slot}: ${clueTxt}`;
+      if (mc.speaker && S.cluesRevealed === 1) {
+        mcSay(`Lắc rương nghe rồi nha! Rương số ${target.slot} nghe có tiếng rất lạ: ${clueTxt}`, 2);
+      }
+    }
+  }
+}
+
+function stripAccents(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase();
+}
+
+function parseCommentText(raw) {
+  const cleaned = stripAccents(raw).replace(/[!.,?;:~`"']+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return null;
+  const parts = cleaned.split(' ');
+  const toSlot = (t) => (/^(1+|r1)$/.test(t) ? 1 : /^(2+|r2)$/.test(t) ? 2 : /^(3+|r3)$/.test(t) ? 3 : 0);
+
+  if (parts.length === 1) {
+    const t = parts[0];
+    if (t === 'tranh' || t === 'bid' || t === 'thamgia' || t === 'choi') return { kind: 'join' };
+    if (t === 'lac' || t === 'shake' || t === 'soi' || t === 'nghe') return { kind: 'shake' };
+    const slot = toSlot(t);
+    if (slot) return { kind: 'select', slot };
+  }
+  if (parts.length === 2) {
+    const [a, b] = parts;
+    if ((a === 'tham' && b === 'gia') || (a === 'tranh' && b === 'ruong')) return { kind: 'join' };
+    if (a === 'lac' && (b === 'ruong' || b === 'len' || b === 'manh')) return { kind: 'shake' };
+    const sA = toSlot(a), sB = toSlot(b);
+    if ((a === 'ruong' || a === 'chon' || a === 'mo' || a === 'so') && sB) return { kind: 'select', slot: sB };
+    if (a === 'tranh' && sB) return { kind: 'joinSelect', slot: sB };
+    if (sA && b === 'tranh') return { kind: 'joinSelect', slot: sA };
+    if (a === 'lac' && sB) return { kind: 'selectShake', slot: sB };
+    if (sA && b === 'lac') return { kind: 'selectShake', slot: sA };
+  }
+  return null;
+}
+
+function selectChestVote(p, slot) {
+  const chest = S.chests.find((c) => c.slot === slot);
+  if (!chest) return;
+  if (p.votedSlot && p.votedSlot !== slot) {
+    const old = S.chests.find((c) => c.slot === p.votedSlot);
+    if (old && old.votes > 0) old.votes--;
+  }
+  if (p.votedSlot !== slot) {
+    p.votedSlot = slot;
+    chest.votes++;
+    if (!chest.voters.some((v) => v.id === p.id)) {
+      chest.voters.unshift({ id: p.id, name: p.name, avatar: p.avatar });
+      if (chest.voters.length > 4) chest.voters.length = 4;
+    }
+  }
+  if (S.phase === 'conveyor' || S.phase === 'scout') {
+    const topChest = [...S.chests].sort((a, b) => b.votes - a.votes || TIER_META[b.tier].rank - TIER_META[a.tier].rank)[0];
+    if (topChest) S.selectedSlot = topChest.slot;
+  }
+  const pos = getChestCoords(chest);
+  spawnPopup(pos.x, pos.y - 80, `+#${slot} ${p.name}`, '#7dd3fc', 20);
+}
+
+// ================= LIVE EVENT HANDLERS =================
+function onComment(ev) {
+  if (!S) return { handled: false };
+  const p = ensurePlayer(ev);
+  p.cmt++;
+  S.cmtTotal++;
+
+  const cmd = parseCommentText(ev.text || '');
+  if (!cmd) return { handled: false, slot: null, joined: false };
+
+  let joined = false;
+  let slot = null;
+
+  if (cmd.kind === 'join' || cmd.kind === 'joinSelect') {
+    const res = ensureContender(p);
+    joined = true;
+    if (res.isNew) {
+      addTicker(`🙋 ${p.name} gõ "tranh" tham gia tranh rương!`);
+      spawnPopup(514, 245, `🙋 ${p.name} TRANH RƯƠNG!`, '#34d399', 22);
+    }
+  }
+  if (cmd.kind === 'select' || cmd.kind === 'joinSelect' || cmd.kind === 'selectShake') {
+    slot = cmd.slot;
+    selectChestVote(p, slot);
+    if (cmd.kind === 'select') {
+      ensureContender(p);
+      addTicker(`📦 ${p.name} chọn Rương #${slot}`);
+    }
+  }
+  if (cmd.kind === 'shake' || cmd.kind === 'selectShake') {
+    ensureContender(p);
+    triggerShakeAndClue(16, p.name, false);
+    const active = getActiveChest();
+    if (active) {
+      const pos = getChestCoords(active);
+      spawnPopup(pos.x, pos.y - 40, '🫨 LẮC!', '#f9a8d4', 24);
+    }
+  }
+
+  markUiDirty();
+  return { handled: true, slot, joined };
+}
+
+function onLike(ev) {
+  if (!S) return;
+  const p = ensurePlayer(ev);
+  const count = Math.max(1, Math.round(Number(ev.count) || 1));
+  S.likesTotal += count;
+  // ~220 tim lắc đầy 100%, mỗi lần bấm test 50-120 tim lắc rất đã mắt
+  const gain = Math.min(100, count * 0.45);
+  sfx('heart');
+  triggerShakeAndClue(gain, p.name, false);
+  const active = getActiveChest();
+  if (active) {
+    const pos = getChestCoords(active);
+    spawnPopup(pos.x + (Math.random() - 0.5) * 90, pos.y - 30, `❤️ +${count}`, '#f472b6', 22);
+  }
+  markUiDirty();
+}
+
+function onSimple(type, ev) {
+  if (!S) return;
+  const p = ensurePlayer(ev);
+  if (type === 'follow') addTicker(`➕ ${p.name} vừa theo dõi kênh!`);
+  else if (type === 'share') {
+    addTicker(`🔗 ${p.name} vừa chia sẻ phòng LIVE!`);
+    triggerShakeAndClue(12, p.name, false);
+  } else if (type === 'member') {
+    addTicker(`👋 ${p.name} ghé xem Kho Báu Container Mù`);
+  }
+  markUiDirty();
+}
+
+function onGift(ev) {
+  if (!S) return;
+  if (S.phase === 'reveal') {
+    pendingGifts.push(ev);
+    return;
+  }
+
+  const p = ensurePlayer(ev);
+  const rule = resolveGiftRule(ev.giftName, ev.coins, ev.giftId);
+  if (rule === null) return;
+
+  const baseCoins = Math.max(1, Math.round(Number(ev.coins) || Number(rule.diamondCount) || 1));
+  const repeat = Math.max(1, Math.round(Number(ev.count) || 1));
+  const ruleMult = Math.max(1, Number(rule.count) || 1);
+  const rawXu = baseCoins * repeat * ruleMult;
+
+  const isSnipeWindow = S.phase === 'auction' && S.phaseTimer <= 5.0;
+  const snipeBonus = (rule.tier === 'snipeBoost' && isSnipeWindow) ? Math.ceil(rawXu * 0.2) : 0;
+  const bidAdded = rawXu + snipeBonus;
+
+  const prevTop = getTopBidder();
+  const prevTop1 = prevTop?.id || null;
+  const prevTop1Name = prevTop?.name || '';
+
+  const { entry } = ensureContender(p);
+  entry.xu += bidAdded;
+  p.totalXu += rawXu;
+  S.giftTotals.set(p.id, { name: p.name, avatar: p.avatar, coins: (S.giftTotals.get(p.id)?.coins || 0) + rawXu });
+
+  // Nếu đang trong pha scout và thả quà lớn / nâng cấp VIP -> khóa luôn rương VIP và chuyển sang Đấu giá!
+  let active = getActiveChest();
+  if (rule.tier === 'vipSteal' && active && active.tier !== 'dragonSafe') {
+    active.tier = 'dragonSafe';
+    active.loot = pickLootForTier('dragonSafe');
+    toastBanner(`🐉 ${p.name} NÂNG CẤP RƯƠNG #${active.slot} THÀNH KÉT RỒNG VÀNG!`);
+    addTicker(`🐉 ${p.name} nâng cấp Rương #${active.slot} thành Két Sắt Rồng Vàng!`);
+    if (S.phase === 'scout' || S.phase === 'conveyor') {
+      enterAuctionPhase();
+    }
+  } else if (rule.tier === 'shakeBid') {
+    triggerShakeAndClue(40, p.name, true);
+  }
+
+  const nextTop1 = (!prevTop || entry.id === prevTop.id || entry.xu > prevTop.xu || (entry.xu === prevTop.xu && entry.joinedAt < prevTop.joinedAt))
+    ? entry
+    : prevTop;
+  const isTakeover = nextTop1 && nextTop1.id === p.id && prevTop1 && prevTop1 !== p.id;
+  const isFirstBid = nextTop1 && nextTop1.id === p.id && !prevTop1;
+
+  active = getActiveChest();
+  const chestPos = active ? getChestCoords(active) : { x: W / 2, y: H / 2 };
+
+  // Hiệu ứng va chạm trên Canvas (tiết lưu FX nhẹ khi spam dày <20ms để tránh giật frame, vẫn ưu tiên cướp ngôi)
+  const nowMs = performance.now();
+  if (isTakeover || isFirstBid || rule.tier === 'vipSteal' || nowMs - lastGiftFxMs >= 20) {
+    lastGiftFxMs = nowMs;
+    burst(chestPos.x, chestPos.y, rule.tier === 'vipSteal' ? '#fde047' : '#38bdf8', rule.tier === 'vipSteal' ? 32 : 14, 1.45);
+    spawnPopup(chestPos.x + (Math.random() - 0.5) * 44, chestPos.y - 75, `+${bidAdded} xu`, '#fde047', 28);
+    S.beams.push({ x0: 120 + Math.random() * 780, y0: 40, x1: chestPos.x, y1: chestPos.y, col: '#fde047', life: 0.45, max: 0.45 });
+    if (S.beams.length > 24) S.beams.shift();
+  }
+
+  if (isTakeover && isSnipeWindow) {
+    // CƯỚP RƯƠNG PHÚT CHÓT (5 GIÂY CUỐI)!!
+    sfx('steal');
+    S.shakeScreen = 14;
+    S.flash = { rgb: '239, 68, 68', alpha: 0.42, life: 0.5, max: 0.5 };
+    spawnLightning(W * 0.2, 40, chestPos.x, chestPos.y, '#fde047');
+    spawnLightning(W * 0.8, 40, chestPos.x, chestPos.y, '#f87171');
+    if (S.snipeCount < 3) {
+      S.snipeCount++;
+      S.phaseTimer = Math.max(S.phaseTimer, 5.0);
+    }
+    showBigBanner({
+      title: `⚡ CƯỚP RƯƠNG PHÚT CHÓT!!`,
+      sub: `${p.name} vừa giật rương khỏi tay ${prevTop1Name}!`,
+      coinText: `🪙 ${nextTop1.xu.toLocaleString('vi-VN')} xu`,
+      avatar: p.avatar,
+      name: p.name,
+      mode: 'steal',
+    });
+    addTicker(`⚡ GIẬT RƯƠNG 5S: ${p.name} vượt mặt ${prevTop1Name} (${nextTop1.xu} xu)!`);
+    if (mc.speaker) mcSay(`Ối giời ơi! Phút cuối rồi mà ${p.spokenName} vừa tung quà giật thẳng rương trên tay ${prevTop1Name}!`, 4);
+  } else if (isTakeover || rule.tier === 'vipSteal' || rule.tier === 'bidMid' || rule.tier === 'snipeBoost') {
+    sfx(rule.tier === 'vipSteal' ? 'jackpot' : 'gift');
+    S.shakeScreen = Math.max(S.shakeScreen, rule.tier === 'vipSteal' ? 10 : 5);
+    showBigBanner({
+      title: isTakeover ? `👑 ${p.name} LÊN TOP 1 ĐẤU GIÁ!` : `🎁 ${p.name} TUNG ${rule.giftName || rule.title}!`,
+      sub: `${TIER_META[active?.tier || 'steel'].name} · Tổng giá: ${entry.xu.toLocaleString('vi-VN')} xu`,
+      coinText: `+${bidAdded} xu`,
+      avatar: p.avatar,
+      name: p.name,
+    });
+    addTicker(`🎁 ${p.name} thả ${rule.giftName || 'quà'} (+${bidAdded} xu) · Đang dẫn: ${nextTop1?.name}`);
+    if (mc.speaker && (isTakeover || rule.tier === 'vipSteal')) {
+      mcSay(`${p.spokenName} vừa tung ${rule.giftName || 'quà lớn'} vươn lên giữ Top 1 với ${nextTop1?.xu} xu!`, 3);
+    }
+  } else {
+    sfx('gift');
+    if (isFirstBid) {
+      addTicker(`🔥 ${p.name} mở bát ${bidAdded} xu cho Rương #${active?.slot}!`);
+    } else {
+      addTicker(`🎁 ${p.name} đẩy thêm +${bidAdded} xu (Tổng ${entry.xu} xu)`);
+    }
+  }
+
+  markUiDirty();
+}
+
+function enterScoutPhase() {
+  if (!S) return;
+  const dur = phaseDurations();
+  S.phase = 'scout';
+  S.phaseTimer = dur.scout;
+  for (const c of S.chests) c.xOffset = 0;
+  toastBanner('🫨 THẢ TIM HOẶC GÕ "lac" ĐỂ SOI ĐỘ HIẾM!');
+  updateUI();
+}
+
+function enterAuctionPhase() {
+  if (!S) return;
+  const dur = phaseDurations();
+  S.phase = 'auction';
+  S.phaseTimer = dur.auction;
+  S.lastTickSec = -1;
+  // Chốt rương có nhiều bình chọn nhất (hoặc tier cao nhất nếu hòa)
+  const sortedChests = [...S.chests].sort((a, b) => b.votes - a.votes || TIER_META[b.tier].rank - TIER_META[a.tier].rank);
+  if (sortedChests[0]) S.selectedSlot = sortedChests[0].slot;
+
+  const active = getActiveChest();
+  const label = active ? TIER_META[active.tier].name : 'Rương Bí Ẩn';
+  sfx('clue');
+  toastBanner(`🔨 ĐẤU GIÁ RƯƠNG #${S.selectedSlot} · ${label.toUpperCase()}!`);
+  addTicker(`🔨 Chốt Rương #${S.selectedSlot} (${label}) lên bục đấu giá!`);
+  if (mc.speaker) {
+    mcSay(`Chốt đơn Rương số ${S.selectedSlot}: ${label} lên sàn đấu giá! Ai muốn sở hữu vào Tủ Bảo Tàng thì thả quà tranh Top 1 ngay!`, 3);
+  }
+  updateUI();
+}
+
+function spawnShockwave(x, y, maxR, col = '#fde047', lw = 6) {
+  if (!S) return;
+  if (!S.shockwaves) S.shockwaves = [];
+  S.shockwaves.push({ x, y, r: 22, maxR, col, lw, life: 0.72, max: 0.72 });
+  if (S.shockwaves.length > 16) S.shockwaves.shift();
+}
+
+function showCenterRevealOverlay(loot, winner) {
+  const el = $('centerRevealOverlay');
+  if (!el) return;
+  const BADGE_LABELS = {
+    troll: '🩴 TROLL HÀI HƯỚC!',
+    common: '🧭 VẬT PHẨM THƯỜNG',
+    rare: '✨ BẢO VẬT HIẾM',
+    epic: '💎 CỰC HIẾM GIÁ TRỊ CAO',
+    legendary: '👑 CỰC PHẨM NGHÌN XU!',
+  };
+  el.setAttribute('data-rarity', loot.rarity || 'common');
+  $('revBadge').textContent = BADGE_LABELS[loot.rarity] || '🎁 PHẦN THƯỞNG';
+  $('revVisual').innerHTML = loot.imageUrl
+    ? `<img src="${escHtml(loot.imageUrl)}" referrerpolicy="no-referrer" alt="${escHtml(loot.name)}" onerror="this.outerHTML='<span class=revEmoji>${escHtml(loot.icon || '🎁')}</span>'">`
+    : `<span class="revEmoji">${escHtml(loot.icon || '🎁')}</span>`;
+  $('revName').textContent = loot.name;
+  $('revXu').textContent = `🪙 ${Number(loot.valueXu || 0).toLocaleString('vi-VN')} xu`;
+  $('revOwnerAv').innerHTML = avatarHtml(winner.name, winner.avatar);
+  $('revOwnerTxt').textContent = `Chủ nhân: ${winner.name} · Lưu Tủ Bảo Tàng!`;
+  el.setAttribute('aria-hidden', 'false');
+  el.classList.add('on');
+}
+
+function resolveReveal(forcedOutcome = null, customItem = null) {
+  if (!S) return;
+  if (S.phase === 'reveal' && !forcedOutcome && !customItem) return;
+  const dur = phaseDurations();
+  S.phase = 'reveal';
+  S.phaseTimer = dur.reveal;
+  S.revealDone = true;
+
+  const chest = getActiveChest();
+  if (!chest) return;
+  chest.openAmt = 0.05;
+
+  const tEl = $('bossToast');
+  if (tEl) { clearTimeout(tEl._t); tEl.classList.remove('on'); }
+  const bEl = $('summonBanner');
+  if (bEl) { clearTimeout(bEl._t); bEl.classList.remove('on'); }
+  const prevRev = $('centerRevealOverlay');
+  if (prevRev) prevRev.classList.remove('on');
+
+  if (customItem) {
+    chest.loot = {
+      id: customItem.id,
+      name: customItem.name,
+      rarity: customItem.rarity || 'rare',
+      valueXu: Number(customItem.valueXu) || 0,
+      icon: customItem.icon || '🎁',
+      imageUrl: customItem.imageUrl || '',
+      clues: CUSTOM_CLUES[customItem.rarity] || CUSTOM_CLUES.rare,
+    };
+  } else if (forcedOutcome === 'jackpot' || forcedOutcome === 'legendary') {
+    chest.loot = LOOT_ITEMS.find((x) => x.id === 'ngoc_ty') || LOOT_ITEMS[9];
+  } else if (forcedOutcome === 'epic') {
+    chest.loot = LOOT_ITEMS.find((x) => x.id === 'kim_cuong') || LOOT_ITEMS[7];
+  } else if (forcedOutcome === 'rare') {
+    chest.loot = LOOT_ITEMS.find((x) => x.id === 'dong_ho') || LOOT_ITEMS[5];
+  } else if (forcedOutcome === 'common') {
+    chest.loot = LOOT_ITEMS.find((x) => x.id === 'la_ban') || LOOT_ITEMS[3];
+  } else if (forcedOutcome === 'troll') {
+    chest.loot = LOOT_ITEMS.find((x) => x.id === 'dep_to_ong') || LOOT_ITEMS[0];
+  }
+
+  const leaders = getSortedBidders();
+  const winner = leaders[0] || { id: 'host_lucky', name: 'Khách May Mắn', spokenName: 'Khách May Mắn', avatar: '', xu: 0 };
+  const loot = chest.loot;
+  S.revealOutcome = { winner, loot, chest };
+
+  // Đưa vào TỦ BẢO TÀNG suốt buổi LIVE!
+  S.museum.unshift({
+    itemId: loot.id,
+    name: loot.name,
+    rarity: loot.rarity,
+    valueXu: loot.valueXu,
+    icon: loot.icon,
+    imageUrl: loot.imageUrl || '',
+    ownerName: winner.name,
+    ownerAvatar: winner.avatar,
+    bidXu: winner.xu,
+    round: S.round,
+    at: Date.now(),
+  });
+  if (S.museum.length > 60) S.museum.length = 60;
+  saveSessionData();
+
+  sfx('open');
+  const cx = W / 2, cy = 420;
+  setTimeout(() => {
+    if (!S || S.phase !== 'reveal') return;
+    showCenterRevealOverlay(loot, winner);
+
+    if (loot.rarity === 'troll') {
+      sfx('troll');
+      S.shakeScreen = 3;
+      burst(cx, cy, '#a3e635', 34, 1.3);
+      spawnShockwave(cx, cy, 240, '#a3e635', 4);
+      if (mc.speaker) mcSay(`Trời đất ơi! Đấu giá căng thẳng xong ${winner.spokenName} mở trúng ${loot.name}! Treo lên Tủ Bảo Tàng cho cả phòng cười nào!`, 4);
+    } else if (loot.rarity === 'common') {
+      sfx('win');
+      burst(cx, cy, '#34d399', 42, 1.4);
+      spawnShockwave(cx, cy, 270, '#34d399', 5);
+      if (mc.speaker) mcSay(`Chúc mừng ${winner.spokenName} đã mở được ${loot.name} và lưu danh vào Tủ Bảo Tàng!`, 3);
+    } else if (loot.rarity === 'rare') {
+      sfx('win');
+      S.shakeScreen = 6;
+      S.flash = { rgb: '56, 189, 248', alpha: 0.25, life: 0.45, max: 0.45 };
+      burst(cx, cy, '#38bdf8', 58, 1.65);
+      burst(cx, cy, '#fde047', 26, 1.4);
+      spawnShockwave(cx, cy, 340, '#38bdf8', 6);
+      setTimeout(() => S?.phase === 'reveal' && spawnShockwave(cx, cy, 420, '#fde047', 4), 180);
+      if (mc.speaker) mcSay(`Tuyệt vời! ${winner.spokenName} vừa khui trúng bảo vật hiếm ${loot.name} trị giá ${loot.valueXu} xu!`, 3);
+    } else if (loot.rarity === 'epic') {
+      sfx('jackpot');
+      S.shakeScreen = 11;
+      S.flash = { rgb: '192, 132, 252', alpha: 0.36, life: 0.55, max: 0.55 };
+      burst(cx, cy, '#c084fc', 75, 1.9);
+      burst(cx, cy, '#fde047', 45, 1.7);
+      spawnLightning(80, 60, cx, cy, '#e879f9');
+      spawnLightning(W - 80, 60, cx, cy, '#fde047');
+      spawnShockwave(cx, cy, 420, '#c084fc', 8);
+      setTimeout(() => S?.phase === 'reveal' && spawnShockwave(cx, cy, 500, '#fde047', 6), 200);
+      if (mc.speaker) mcSay(`Cháy quá anh em ơi! ${winner.spokenName} vừa mở trúng món cực hiếm ${loot.name} trị giá ${loot.valueXu} xu!`, 4);
+    } else {
+      sfx('jackpot');
+      S.shakeScreen = 16;
+      S.flash = { rgb: '253, 224, 71', alpha: 0.52, life: 0.75, max: 0.75 };
+      burst(cx, cy, '#fde047', 95, 2.2);
+      burst(cx, cy, '#f97316', 50, 1.9);
+      burst(cx, cy, '#38bdf8', 36, 1.7);
+      spawnLightning(60, 40, cx, cy, '#fde047');
+      spawnLightning(W - 60, 40, cx, cy, '#fb923c');
+      spawnLightning(60, H - 80, cx, cy, '#fde047');
+      spawnLightning(W - 60, H - 80, cx, cy, '#fef08a');
+      spawnShockwave(cx, cy, 480, '#fde047', 10);
+      setTimeout(() => {
+        if (S?.phase !== 'reveal') return;
+        burst(cx - 190, cy - 120, '#fde047', 48, 1.7);
+        burst(cx + 190, cy - 120, '#f43f5e', 48, 1.7);
+        spawnShockwave(cx, cy, 560, '#fb923c', 7);
+      }, 420);
+      setTimeout(() => {
+        if (S?.phase !== 'reveal') return;
+        burst(cx, cy - 160, '#38bdf8', 52, 1.8);
+        spawnShockwave(cx, cy, 620, '#fef08a', 6);
+      }, 880);
+      if (mc.speaker) mcSay(`Nổ hũ cực phẩm rồi cả nhà ơi! ${winner.spokenName} vừa mở trúng ${loot.name} trị giá ${loot.valueXu} xu! Vinh danh thẳng lên Tủ Bảo Tàng!`, 4);
+    }
+    addTicker(`🏛️ ${winner.name} mở trúng ${loot.icon} ${loot.name} (${loot.valueXu} xu) -> Lên Tủ Bảo Tàng!`);
+    updateUI();
+  }, 480);
+
+  updateUI();
+}
+
+// ================= CANVAS COORDINATES & RENDERING =================
+function getChestCoords(chest) {
+  if (!S) return { x: W / 2, y: 480, scale: 1 };
+  if (S.phase === 'conveyor' || S.phase === 'scout') {
+    const slotsX = [195, 514, 833];
+    const base = slotsX[chest.slot - 1] ?? 514;
+    return { x: base + (chest.xOffset || 0), y: 470, scale: 1.05 };
+  }
+  const activeSlot = S.selectedSlot;
+  if (chest.slot === activeSlot) {
+    return { x: W / 2, y: 445, scale: 1.56 };
+  }
+  const others = S.chests.filter((c) => c.slot !== activeSlot);
+  const idx = others.indexOf(chest);
+  return { x: idx === 0 ? 155 : 873, y: 540, scale: 0.72 };
+}
+
+const embers = Array.from({ length: 36 }, () => ({
+  x: Math.random() * 1080,
+  y: Math.random() * 1920,
+  vx: (Math.random() - 0.5) * 18,
+  vy: -20 - Math.random() * 35,
+  r: 1.5 + Math.random() * 2.8,
+  gold: Math.random() < 0.65,
+}));
+
+function drawWarehouseBackground(nowSec) {
+  // Nền kho cảng công nghiệp sang trọng
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0a1022');
+  bg.addColorStop(0.55, '#11182c');
+  bg.addColorStop(1, '#090c17');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Giàn kèo thép trên trần & đèn báo
+  ctx.strokeStyle = 'rgba(71, 85, 105, 0.35)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(0, 75); ctx.lineTo(W, 75);
+  for (let gx = 40; gx < W; gx += 120) {
+    ctx.moveTo(gx, 0); ctx.lineTo(gx + 60, 75);
+    ctx.moveTo(gx + 60, 0); ctx.lineTo(gx, 75);
+  }
+  ctx.stroke();
+
+  // Luồng đèn Spotlight chiếu xuống bục đấu giá
+  const isSnipe = S && S.phase === 'auction' && S.phaseTimer <= 5.0;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const beamPositions = (S?.phase === 'auction' || S?.phase === 'reveal') ? [W / 2] : [195, 514, 833];
+  for (const bx of beamPositions) {
+    const spread = (S?.phase === 'auction' || S?.phase === 'reveal') ? 260 : 145;
+    const lg = ctx.createLinearGradient(bx, 0, bx, 620);
+    lg.addColorStop(0, isSnipe ? 'rgba(239, 68, 68, 0.36)' : 'rgba(250, 204, 21, 0.25)');
+    lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = lg;
+    ctx.beginPath();
+    ctx.moveTo(bx - 30, 0);
+    ctx.lineTo(bx + 30, 0);
+    ctx.lineTo(bx + spread, 620);
+    ctx.lineTo(bx - spread, 620);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Băng chuyền công nghiệp chạy ngang phía dưới kiện hàng
+  const beltY = 545, beltH = 88;
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(16, beltY, W - 32, beltH);
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(16, beltY, W - 32, beltH);
+
+  // Vạch băng chuyền chuyển động
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(18, beltY + 4, W - 36, beltH - 30);
+  ctx.clip();
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(18, beltY + 4, W - 36, beltH - 30);
+  const step = 64;
+  const off = (S?.conveyorScroll || 0) % step;
+  ctx.fillStyle = '#334155';
+  for (let sx = -step + off; sx < W + step; sx += step) {
+    ctx.beginPath();
+    ctx.moveTo(sx, beltY + 8);
+    ctx.lineTo(sx + 24, beltY + 8);
+    ctx.lineTo(sx + 8, beltY + beltH - 30);
+    ctx.lineTo(sx - 16, beltY + beltH - 30);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Thanh cảnh báo vàng-đen dọc mép băng chuyền
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(18, beltY + beltH - 22, W - 36, 18);
+  ctx.clip();
+  ctx.fillStyle = '#eab308';
+  ctx.fillRect(18, beltY + beltH - 22, W - 36, 18);
+  ctx.fillStyle = '#0f172a';
+  for (let kx = -24; kx < W + 24; kx += 32) {
+    ctx.beginPath();
+    ctx.moveTo(kx, beltY + beltH - 22);
+    ctx.lineTo(kx + 16, beltY + beltH - 22);
+    ctx.lineTo(kx + 6, beltY + beltH);
+    ctx.lineTo(kx - 10, beltY + beltH);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Con lăn xoay dưới băng chuyền
+  for (let rx = 56; rx < W - 40; rx += 92) {
+    ctx.save();
+    ctx.translate(rx, beltY + beltH + 14);
+    ctx.rotate((S?.conveyorScroll || 0) * 0.05);
+    ctx.fillStyle = '#475569';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+    ctx.moveTo(0, -10); ctx.lineTo(0, 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Đèn báo đỏ chớp ở góc khi vào 5 giây cuối
+  if (isSnipe) {
+    const pulse = 0.5 + 0.5 * Math.sin(nowSec * 16);
+    ctx.fillStyle = `rgba(239, 68, 68, ${0.22 * pulse})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function render(nowSec, dt) {
+  // 1. Background floating golden dust
+  bgCtx.clearRect(0, 0, 1080, 1920);
+  const emberLim = graphics === 'lite' ? 14 : embers.length;
+  for (let i = 0; i < emberLim; i++) {
+    const e = embers[i];
+    e.x += e.vx * dt;
+    e.y += e.vy * dt;
+    if (e.y < -10) { e.y = 1930; e.x = Math.random() * 1080; }
+    bgCtx.fillStyle = e.gold ? 'rgba(250, 204, 21, 0.45)' : 'rgba(56, 189, 248, 0.4)';
+    bgCtx.beginPath();
+    bgCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    bgCtx.fill();
+  }
+
+  if (!S) return;
+  ctx.save();
+  if (graphics === 'full' && S.shakeScreen > 0.2) {
+    const sx = (Math.random() - 0.5) * S.shakeScreen * 2;
+    const sy = (Math.random() - 0.5) * S.shakeScreen * 2;
+    ctx.translate(W / 2 + sx, H / 2 + sy);
+    ctx.scale(1.02, 1.02);
+    ctx.translate(-W / 2, -H / 2);
+  }
+
+  drawWarehouseBackground(nowSec);
+
+  const isAuctionOrReveal = S.phase === 'auction' || S.phase === 'reveal';
+  const sortedDraw = [...S.chests].sort((a, b) => (a.slot === S.selectedSlot ? 1 : 0) - (b.slot === S.selectedSlot ? 1 : 0));
+
+  for (const chest of sortedDraw) {
+    const pos = getChestCoords(chest);
+    const meta = TIER_META[chest.tier] || TIER_META.carton;
+    const isMain = chest.slot === S.selectedSlot;
+
+    ctx.save();
+    if (isAuctionOrReveal && !isMain) ctx.globalAlpha = 0.42;
+
+    // Vẽ kiện hàng / két sắt
+    if (window.StageVisuals?.drawContainer) {
+      window.StageVisuals.drawContainer(ctx, {
+        tier: chest.tier,
+        x: pos.x,
+        y: pos.y,
+        scale: pos.scale,
+        shake: chest.shake,
+        openAmt: chest.openAmt,
+        now: nowSec,
+        selected: !isAuctionOrReveal && isMain,
+        activeAuction: isAuctionOrReveal && isMain,
+        snipeAlert: isAuctionOrReveal && isMain && S.phase === 'auction' && S.phaseTimer <= 5.0,
+        clueLevel: chest.clues.length,
+      });
+    }
+
+    // Nhãn Số Rương + Tên Hạng (kiểu bảng vinh danh giống thiết kế mẫu)
+    if (!isAuctionOrReveal || (isMain && S.phase === 'auction')) {
+      const tagY = isAuctionOrReveal ? pos.y - 178 : pos.y - 134;
+      const label = `#${chest.slot} · ${meta.short.toUpperCase()}`;
+      ctx.font = `900 ${isAuctionOrReveal ? 25 : 21}px "Be Vietnam Pro", sans-serif`;
+      const tw = Math.max(220, ctx.measureText(label).width + 38);
+      const th = isAuctionOrReveal ? 44 : 38;
+      const bx = pos.x - tw / 2, by = tagY - th / 2;
+
+      ctx.save();
+      // Vương miện sừng rồng cho Két Sắt Rồng Vàng
+      if (chest.tier === 'dragonSafe') {
+        ctx.fillStyle = '#fbbf24';
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pos.x - 32, by + 2);
+        ctx.lineTo(pos.x - 42, by - 16);
+        ctx.lineTo(pos.x - 16, by - 4);
+        ctx.lineTo(pos.x, by - 18);
+        ctx.lineTo(pos.x + 16, by - 4);
+        ctx.lineTo(pos.x + 42, by - 16);
+        ctx.lineTo(pos.x + 32, by + 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      const tagBg = ctx.createLinearGradient(bx, by, bx, by + th);
+      if (chest.tier === 'dragonSafe') {
+        tagBg.addColorStop(0, '#991b1b');
+        tagBg.addColorStop(1, '#450a0a');
+      } else if (chest.tier === 'royal') {
+        tagBg.addColorStop(0, '#4c1d95');
+        tagBg.addColorStop(1, '#1e1b4b');
+      } else if (chest.tier === 'steel') {
+        tagBg.addColorStop(0, '#075985');
+        tagBg.addColorStop(1, '#0c2d48');
+      } else if (chest.tier === 'crate') {
+        tagBg.addColorStop(0, '#78350f');
+        tagBg.addColorStop(1, '#451a03');
+      } else {
+        tagBg.addColorStop(0, '#715b3a');
+        tagBg.addColorStop(1, '#3b2f1d');
+      }
+      ctx.fillStyle = tagBg;
+      ctx.strokeStyle = meta.glow;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, tw, th, chest.tier === 'carton' ? 8 : 19);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = chest.tier === 'dragonSafe' ? '#fef08a' : '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pos.x, tagY + 1);
+      ctx.restore();
+    }
+
+    // Trong pha chọn / lắc rương: hiện thẻ bình chọn viền sáng + gợi ý dưới mỗi rương
+    if (!isAuctionOrReveal) {
+      const voteY = pos.y + 132;
+      const vTxt = `${chest.votes} bình chọn (gõ ${chest.slot})`;
+      ctx.font = '800 19px "Be Vietnam Pro", sans-serif';
+      const vw = Math.max(216, ctx.measureText(vTxt).width + 28);
+      const vh = 34;
+      ctx.save();
+      ctx.fillStyle = isMain ? 'rgba(30, 27, 75, 0.94)' : 'rgba(15, 23, 42, 0.92)';
+      ctx.strokeStyle = isMain ? meta.glow : 'rgba(148, 163, 184, 0.55)';
+      ctx.lineWidth = isMain ? 2.5 : 1.8;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - vw / 2, voteY - vh / 2, vw, vh, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = isMain ? '#fef08a' : '#e2e8f0';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(vTxt, pos.x, voteY + 1);
+      ctx.restore();
+
+      if (chest.clues.length > 0) {
+        const clue = chest.clues[chest.clues.length - 1];
+        const shortClue = `🔊 ${clue.slice(0, 26)}${clue.length > 26 ? '…' : ''}`;
+        const clueY = pos.y + 206;
+        ctx.font = '700 16px "Be Vietnam Pro", sans-serif';
+        const cw = Math.min(286, ctx.measureText(shortClue).width + 22);
+        ctx.fillStyle = 'rgba(10, 14, 28, 0.92)';
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(pos.x - cw / 2, clueY - 15, cw, 30, 15);
+        ctx.fill();
+        ctx.stroke();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(shortClue, pos.x, clueY + 1, cw - 14);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Trong pha Đấu Giá: hiện Bảng Top 1 + Gợi ý ngay trên Rương Chính
+  if (S.phase === 'auction') {
+    const leader = getTopBidder();
+    const badgeText = leader
+      ? (leader.xu > 0 ? `👑 TOP 1: ${leader.name} (${leader.xu.toLocaleString('vi-VN')} xu)` : `🙋 GIỮ CHỖ TẠM: ${leader.name} (0 xu)`)
+      : '🔓 CHƯA CÓ GIÁ · THẢ 1 HOA HỒNG ĐỂ CHIẾM TOP 1!';
+    ctx.font = '900 24px "Be Vietnam Pro", sans-serif';
+    const bw = Math.min(920, ctx.measureText(badgeText).width + 44);
+    ctx.fillStyle = leader && leader.xu > 0 ? 'rgba(120, 53, 15, 0.94)' : 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = S.phaseTimer <= 5 ? '#ef4444' : '#fde047';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - bw / 2, 165, bw, 48, 24);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fef08a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badgeText, W / 2, 190, bw - 28);
+  }
+
+  // Tia sáng, sét & hạt pháo hoa
+  // (Vật phẩm mở rương hiển thị nổi bật ở giữa màn hình qua #centerRevealOverlay)
+
+  // Sóng xung kích, tia sáng, sét & hạt pháo hoa
+  for (const sw of (S.shockwaves || [])) {
+    const k = Math.max(0, sw.life / sw.max);
+    const prog = 1 - k;
+    const rad = sw.r + (sw.maxR - sw.r) * Math.pow(prog, 0.72);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = sw.col;
+    ctx.globalAlpha = k * 0.9;
+    ctx.lineWidth = Math.max(1.5, sw.lw * k);
+    ctx.beginPath(); ctx.ellipse(sw.x, sw.y, rad, rad * 0.72, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  for (const b of S.beams) {
+    const k = Math.max(0, b.life / b.max);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = b.col;
+    ctx.globalAlpha = k;
+    ctx.lineWidth = 6 * k;
+    ctx.beginPath(); ctx.moveTo(b.x0, b.y0); ctx.lineTo(b.x1, b.y1); ctx.stroke();
+    ctx.restore();
+  }
+  for (const blt of S.bolts) {
+    const k = Math.max(0, blt.life / blt.max);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = blt.col;
+    ctx.globalAlpha = k;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    blt.pts.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y)));
+    ctx.stroke();
+    ctx.restore();
+  }
+  for (const ptc of S.particles) {
+    ctx.globalAlpha = Math.max(0, ptc.life / ptc.max);
+    ctx.fillStyle = ptc.col;
+    ctx.beginPath(); ctx.arc(ptc.x, ptc.y, ptc.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Chữ bay popup (+xu, +tim, chọn rương)
+  for (const pop of S.popups) {
+    const alpha = Math.min(1, pop.life / pop.max);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `900 ${pop.size}px "Be Vietnam Pro", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#090d16';
+    ctx.strokeText(pop.text, pop.x, pop.y);
+    ctx.fillStyle = pop.color;
+    ctx.fillText(pop.text, pop.x, pop.y);
+    ctx.restore();
+  }
+
+  if (S.flash) {
+    const fk = Math.max(0, S.flash.life / S.flash.max);
+    ctx.fillStyle = `rgba(${S.flash.rgb}, ${S.flash.alpha * fk})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
+}
+
+// ================= SIMULATION STEP =================
+function step(dt) {
+  if (!S) return;
+  gameNow += dt;
+
+  // Decay screen shake & flash
+  S.shakeScreen = Math.max(0, S.shakeScreen - dt * 24);
+  if (S.flash) {
+    S.flash.life -= dt;
+    if (S.flash.life <= 0) S.flash = null;
+  }
+
+  // Update chests physics
+  for (const c of S.chests) {
+    c.shake = Math.max(0, c.shake - dt * 2.2);
+    if (S.phase === 'conveyor') {
+      c.xOffset += (0 - c.xOffset) * Math.min(1, dt * 4.5);
+      if (Math.abs(c.xOffset) < 2) c.xOffset = 0;
+    } else if (S.phase === 'reveal' && c.slot === S.selectedSlot) {
+      c.openAmt = Math.min(1, c.openAmt + dt * 1.45);
+    }
+  }
+  if (S.phase === 'conveyor') {
+    S.conveyorScroll += dt * 220;
+  } else {
+    S.conveyorScroll += dt * 16;
+  }
+
+  // Cập nhật sóng xung kích khi mở rương
+  for (let i = (S.shockwaves || []).length - 1; i >= 0; i--) {
+    S.shockwaves[i].life -= dt;
+    if (S.shockwaves[i].life <= 0) S.shockwaves.splice(i, 1);
+  }
+  // Particles, beams, bolts, popups
+  for (let i = S.particles.length - 1; i >= 0; i--) {
+    const p = S.particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt;
+    p.life -= dt;
+    if (p.life <= 0) S.particles.splice(i, 1);
+  }
+  for (let i = S.beams.length - 1; i >= 0; i--) {
+    S.beams[i].life -= dt;
+    if (S.beams[i].life <= 0) S.beams.splice(i, 1);
+  }
+  for (let i = S.bolts.length - 1; i >= 0; i--) {
+    S.bolts[i].life -= dt;
+    if (S.bolts[i].life <= 0) S.bolts.splice(i, 1);
+  }
+  for (let i = S.popups.length - 1; i >= 0; i--) {
+    const pop = S.popups[i];
+    pop.y += pop.vy * dt;
+    pop.life -= dt;
+    if (pop.life <= 0) S.popups.splice(i, 1);
+  }
+
+  // Phase timer progression
+  S.phaseTimer -= dt;
+  if (S.phase === 'auction' && S.phaseTimer <= 5.0 && S.phaseTimer > 0) {
+    const sec = Math.ceil(S.phaseTimer);
+    if (sec !== S.lastTickSec) {
+      S.lastTickSec = sec;
+      sfx('tick');
+      if (sec === 5 && mc.speaker) {
+        mcSay('Còn 5 giây cuối cùng! Ai thả quà giật rương của Top 1 ngay lúc này đi nào!', 3);
+      }
+    }
+  }
+
+  if (S.phaseTimer <= 0) {
+    if (S.phase === 'conveyor') enterScoutPhase();
+    else if (S.phase === 'scout') enterAuctionPhase();
+    else if (S.phase === 'auction') resolveReveal();
+    else if (S.phase === 'reveal') startNewRound();
+  }
+}
+
+// ================= HTML OVERLAY UI UPDATE =================
+function formatTime(sec) {
+  const s = Math.max(0, Math.ceil(sec));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function updateUI() {
+  if (!S) return;
+  uiDirty = false;
+  const isSnipe = S.phase === 'auction' && S.phaseTimer <= 5.0;
+  const pill = $('phasePill');
+  const PHASE_TEXT = {
+    conveyor: ['LÊN HÀNG', ''],
+    scout: ['LẮC & SOI RƯƠNG', 'scout'],
+    auction: isSnipe ? ['🚨 CƯỚP RƯƠNG 5S', 'snipe'] : ['ĐẤU GIÁ RƯƠNG', 'auction'],
+    reveal: ['MỞ KHÓA BẢO VẬT', 'reveal'],
+  };
+  const [pText, pCls] = PHASE_TEXT[S.phase] || ['ĐẤU GIÁ', ''];
+  pill.textContent = pText;
+  pill.className = `phasePill ${pCls}`;
+  $('roundLabel').textContent = `VÒNG #${S.round}`;
+
+  $('clock').textContent = formatTime(S.phaseTimer);
+  $('clock').classList.toggle('hurry', isSnipe);
+
+  if (isSnipe) {
+    $('snipeSub').textContent = S.snipeCount > 0
+      ? `⚡ ĐÃ GIA HẠN GIẬT RƯƠNG ×${S.snipeCount}!`
+      : '🔥 5 GIÂY CUỐI · THẢ QUÀ GIẬT TOP 1!';
+  } else if (S.phase === 'scout') {
+    $('snipeSub').textContent = `Đã soi ${S.cluesRevealed}/3 gợi ý độ hiếm`;
+  } else {
+    const active = getActiveChest();
+    $('snipeSub').textContent = active ? `Đang tranh: ${TIER_META[active.tier].name}` : '';
+  }
+
+  const museumVal = S.museum.reduce((acc, m) => acc + (m.valueXu || 0), 0);
+  $('museumSummary').textContent = `🏛️ ${S.museum.length} bảo vật`;
+  $('museumValSub').textContent = `Tổng trị giá: ${museumVal.toLocaleString('vi-VN')} xu`;
+  $('mapRankBtn').textContent = manualLeaderboardOpen || $('result').classList.contains('on')
+    ? '✕ Đóng Tủ'
+    : `🏛️ TỦ BẢO TÀNG (${S.museum.length})`;
+
+  // Guide strip
+  const guideArea = $('rotatingGuideArea');
+  guideArea.classList.toggle('snipe', isSnipe);
+  $('guideScout').style.display = (S.phase === 'conveyor' || S.phase === 'scout') ? 'flex' : 'none';
+  $('guideAuction').style.display = S.phase === 'auction' ? 'flex' : 'none';
+  $('guideReveal').style.display = S.phase === 'reveal' ? 'flex' : 'none';
+
+  if (S.phase === 'conveyor' || S.phase === 'scout') {
+    const pct = Math.round(S.shakeMeter);
+    $('shakeFill').style.width = `${pct}%`;
+    $('shakePctTxt').textContent = `${pct}%`;
+    const active = getActiveChest();
+    const latestClue = active?.clues?.[active.clues.length - 1];
+    if (latestClue) {
+      $('clueBannerText').textContent = `🔊 Gợi ý Rương #${active.slot}: ${latestClue}`;
+    }
+  } else if (S.phase === 'auction') {
+    const bidders = getSortedBidders();
+    const t1 = bidders[0];
+    const t2 = bidders[1];
+    $('top1Av').innerHTML = avatarHtml(t1?.name || '?', t1?.avatar);
+    $('top1Name').textContent = t1 ? `👑 Top 1: ${t1.name}` : 'Chưa có chủ sở hữu · Hãy mở bát!';
+    $('top1Bid').textContent = t1
+      ? (t1.xu > 0 ? `Đang dẫn với ${t1.xu.toLocaleString('vi-VN')} xu` : 'Đang giữ chỗ tạm (0 xu · 1 Hoa hồng là cướp!)')
+      : 'Thả quà bất kỳ để chiếm ngôi Top 1 rương này';
+    const badge = $('snipeAlertBadge');
+    badge.classList.toggle('urgent', isSnipe);
+    if (isSnipe) {
+      badge.textContent = t1 ? `🚨 CẦN +${Math.max(1, t1.xu + 1 - (t2?.xu || 0))} XU ĐỂ GIẬT!` : '🚨 GIẬT NGAY!';
+    } else if (t2 && t1) {
+      badge.textContent = `#2 ${t2.name} (${t2.xu} xu) · Kém ${Math.max(1, t1.xu - t2.xu)} xu`;
+    } else {
+      badge.textContent = '🎁 THẢ QUÀ GIỮ RƯƠNG';
+    }
+  } else if (S.phase === 'reveal' && S.revealOutcome) {
+    const { loot, winner } = S.revealOutcome;
+    $('revealHeadline').textContent = `${loot.icon} ${winner.name} mở trúng ${loot.name} (${loot.valueXu.toLocaleString('vi-VN')} xu) -> TỦ BẢO TÀNG!`;
+  }
+
+  // Tủ Bảo Tàng 6 ô trên sân khấu
+  $('museumCabinetMeta').textContent = `${S.museum.length} hiện vật · Hiển thị 6 món mới nhất`;
+  const slotsHtml = Array.from({ length: 6 }, (_, i) => {
+    const item = S.museum[i];
+    if (!item) {
+      return `<div class="mSlot empty"><div style="font-size:24px;opacity:.5;">🏛️</div><div style="font:700 14px/1.2 var(--body);color:#64748b;">Chờ chủ nhân vòng #${S.round + i}</div></div>`;
+    }
+    const visualHtml = item.imageUrl
+      ? `<img src="${escHtml(item.imageUrl)}" referrerpolicy="no-referrer" alt="${escHtml(item.name)}" onerror="this.outerHTML='${escHtml(item.icon || '🎁')}'">`
+      : escHtml(item.icon || '🎁');
+    return `<div class="mSlot r-${item.rarity}">
+      <div class="mTop">
+        <div class="mIcon">${visualHtml}</div>
+        <div class="mInfo">
+          <div class="mItemName">${escHtml(item.name)}</div>
+          <div class="mValRow">
+            <span class="mRarity">${RARITY_LABEL[item.rarity] || 'HIẾM'}</span>
+            <span class="mVal">${item.valueXu.toLocaleString('vi-VN')} xu</span>
+          </div>
+        </div>
+      </div>
+      <div class="mOwner">
+        <div class="mOwnerAv">${avatarHtml(item.ownerName, item.ownerAvatar)}</div>
+        <div class="mOwnerTxt">
+          <div class="mOwnerName">${escHtml(item.ownerName)}</div>
+          <div class="mOwnerBid">Vòng #${item.round} · Đấu ${item.bidXu.toLocaleString('vi-VN')} xu</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  if ($('museumGrid')._html !== slotsHtml) {
+    $('museumGrid')._html = slotsHtml;
+    $('museumGrid').innerHTML = slotsHtml;
+  }
+
+  // Footer counters & Top 3 Đại Gia
+  $('roomCmtTxt').textContent = `💬 ${S.cmtTotal.toLocaleString('vi-VN')} cmt`;
+  $('roomLikeTxt').textContent = `❤️ ${S.likesTotal.toLocaleString('vi-VN')} tim`;
+  $('roomJoinTxt').textContent = `🙋 ${S.roundBids.size} tranh rương`;
+
+  const top3 = [...S.giftTotals.values()].sort((a, b) => b.coins - a.coins).slice(0, 3);
+  const topHtml = [0, 1, 2].map((i) => {
+    const d = top3[i];
+    return `<div class="avSlot">
+      <div class="avRank">🏆 Top ${i + 1}</div>
+      <div class="avCircle">${avatarHtml(d?.name || '?', d?.avatar)}</div>
+      <div class="avName o">${d ? escHtml(d.name) : 'Trống'}</div>
+      <div class="avScore">${d ? `${d.coins.toLocaleString('vi-VN')} xu` : '0 xu'}</div>
+    </div>`;
+  }).join('');
+  if ($('topHunters')._html !== topHtml) {
+    $('topHunters')._html = topHtml;
+    $('topHunters').innerHTML = topHtml;
+  }
+
+  const tickHtml = S.tickers.map((t) => `<div>${escHtml(t)}</div>`).join('');
+  if ($('tickerBox').innerHTML !== tickHtml) $('tickerBox').innerHTML = tickHtml;
+
+  if ($('result').classList.contains('on')) renderFullMuseumModal();
+}
+
+function renderFullMuseumModal() {
+  if (!S) return;
+  const donors = [...S.giftTotals.values()].sort((a, b) => b.coins - a.coins);
+  $('giftPodium').innerHTML = [0, 1, 2].map((i) => {
+    const d = donors[i];
+    return `<li class="giftPlace">
+      <span class="giftMedal">Vòng #${S.round} · Top ${i + 1}</span>
+      <div class="miniAv">${avatarHtml(d?.name || '?', d?.avatar)}</div>
+      <span class="giftDonor">${escHtml(d?.name || 'Chưa có')}</span>
+      <strong class="giftTotal">${d ? `${d.coins.toLocaleString('vi-VN')} xu` : '—'}</strong>
+    </li>`;
+  }).join('');
+
+  $('museumFullList').innerHTML = S.museum.length === 0
+    ? '<div style="grid-column:1/-1;text-align:center;padding:30px;color:#94a3b8;font:700 22px/1.4 var(--body);">Tủ Bảo Tàng chưa có hiện vật nào. Hãy đấu giá rương đầu tiên!</div>'
+    : S.museum.map((item) => {
+        const visualHtml = item.imageUrl
+          ? `<img src="${escHtml(item.imageUrl)}" referrerpolicy="no-referrer" alt="${escHtml(item.name)}" onerror="this.outerHTML='${escHtml(item.icon || '🎁')}'">`
+          : escHtml(item.icon || '🎁');
+        return `<div class="mSlot r-${item.rarity}" style="padding:12px;">
+        <div class="mTop">
+          <div class="mIcon">${visualHtml}</div>
+          <div class="mInfo">
+            <div class="mItemName" style="font-size:20px;">${escHtml(item.name)}</div>
+            <div class="mValRow"><span class="mRarity">${RARITY_LABEL[item.rarity]}</span><span class="mVal">${item.valueXu.toLocaleString('vi-VN')} xu</span></div>
+          </div>
+        </div>
+        <div class="mOwner" style="margin-top:8px;">
+          <div class="mOwnerAv">${avatarHtml(item.ownerName, item.ownerAvatar)}</div>
+          <div class="mOwnerTxt">
+            <div class="mOwnerName">${escHtml(item.ownerName)}</div>
+            <div class="mOwnerBid">Vòng #${item.round} · Giá chốt ${item.bidXu.toLocaleString('vi-VN')} xu</div>
+          </div>
+        </div>
+      </div>`;
+      }).join('');
+}
+
+function toggleLeaderboard(force) {
+  const rEl = $('result');
+  const next = typeof force === 'boolean' ? force : !rEl.classList.contains('on');
+  manualLeaderboardOpen = next;
+  if (next) {
+    renderFullMuseumModal();
+    rEl.classList.add('on');
+    rEl.setAttribute('aria-hidden', 'false');
+  } else {
+    rEl.classList.remove('on');
+    rEl.setAttribute('aria-hidden', 'true');
+  }
+  updateUI();
+}
+
+// ================= GLOBAL GAME_API (HOST BRIDGE) =================
+if ($('mapRankBtn')) $('mapRankBtn').onclick = () => toggleLeaderboard();
+if ($('resPinBtn')) $('resPinBtn').onclick = () => toggleLeaderboard(true);
+if ($('resCloseBtn')) $('resCloseBtn').onclick = () => toggleLeaderboard(false);
+
+window.GAME_API = {
+  event(ev) {
+    if (!ev || !S) return { handled: false };
+    if (ev.type === 'comment') return onComment(ev);
+    if (ev.type === 'gift') { onGift(ev); return { handled: true }; }
+    if (ev.type === 'like') { onLike(ev); return { handled: true }; }
+    if (ev.type === 'follow' || ev.type === 'share' || ev.type === 'member') { onSimple(ev.type, ev); return { handled: true }; }
+    return { handled: false };
+  },
+  sayText(text, prio = 2) { mcSay(text, prio); },
+  stopVoice,
+  setSpeaker(on) {
+    mc.speaker = !!on && !MUTED;
+    if (mc.speaker && !sndOn) void soundOn(true);
+    if (!mc.speaker) { stopVoice(); if (sndOn) void soundOn(false); }
+    else mcNext();
+  },
+  setMc(prefs) {
+    if (!prefs) return;
+    if (prefs.mcOn !== undefined) {
+      mcPrefs.mcOn = prefs.mcOn;
+      if (prefs.mcOn === '0') stopVoice();
+    }
+    if (prefs.graphics !== undefined) graphics = prefs.graphics === 'lite' ? 'lite' : 'full';
+    if (prefs.mcVoice) mcPrefs.mcVoice = prefs.mcVoice;
+    if (prefs.mcSpeed) mcPrefs.mcSpeed = prefs.mcSpeed;
+    if (prefs.mcExpr) mcPrefs.mcExpr = prefs.mcExpr;
+    for (const [ch, max] of [['music', 1.5], ['sfx', 1.5], ['mc', 1]]) {
+      const val = Number(prefs[ch + 'Vol']);
+      if (Number.isFinite(val)) VOL[ch] = Math.max(0, Math.min(max, val));
+    }
+    duck(voiceDucked);
+    if (mc.audio) mc.audio.volume = VOL.mc * VOICE_LEVEL;
+  },
+  setGifts(rules) { setGiftRules(rules); },
+  setLoot(items) { setCustomLoot(items); },
+  setRoundLength(sec) { roundTotalSec = Math.max(30, Number(sec) || 60); startNewRound(); },
+  jumpPhase(phase) {
+    if (!S) return;
+    if (phase === 'conveyor') startNewRound();
+    else if (phase === 'scout') enterScoutPhase();
+    else if (phase === 'auction') enterAuctionPhase();
+    else if (phase === 'snipe5s') {
+      if (S.phase !== 'auction') enterAuctionPhase();
+      S.phaseTimer = 5.0;
+      S.lastTickSec = -1;
+      toastBanner('🚨 5 GIÂY CUỐI! THẢ QUÀ GIẬT RƯƠNG NGAY!');
+      updateUI();
+    } else if (phase === 'reveal') {
+      resolveReveal();
+    }
+  },
+  newSession() { initSession(false, true); },
+  newRound() { startNewRound(); },
+  forceVipChest() {
+    if (!S) return;
+    const active = getActiveChest();
+    if (!active) return;
+    active.tier = 'dragonSafe';
+    active.loot = pickLootForTier('dragonSafe');
+    sfx('jackpot');
+    toastBanner(`🐉 NÂNG CẤP RƯƠNG #${active.slot} THÀNH KÉT RỒNG VÀNG!`);
+    updateUI();
+  },
+  testSnipe5s() {
+    if (!S) return;
+    if (S.phase !== 'auction') enterAuctionPhase();
+    S.phaseTimer = 5.0;
+    S.lastTickSec = -1;
+    // Nếu chưa có ai đặt giá, tạo đối thủ Top 1 giả 30 xu để dễ thử giật rương
+    if (getSortedBidders().length === 0) {
+      onGift({ user: 'bot_top1', name: 'Hoàng Long', giftName: 'Bánh vòng', giftId: 5879, coins: 30, count: 1 });
+    }
+    updateUI();
+  },
+  testReveal(outcome) {
+    if (!S) return;
+    resolveReveal(outcome || null);
+  },
+  testRevealCustom(lootId) {
+    if (!S) return;
+    const item = CUSTOM_LOOT.find((x) => x.id === lootId);
+    if (item) resolveReveal(null, item);
+  },
+  toggleLeaderboard(force) { toggleLeaderboard(force); },
+  phase() { return S ? S.phase : 'conveyor'; },
+  stats() {
+    if (!S) return { round: 0, phase: 'conveyor', timeLeft: 0, snipeMode: false, snipeCount: 0, shakeMeter: 0, cluesRevealed: 0, selectedSlot: 1, activeChestTier: 'carton', topBidder: null, roundGiftXu: 0, votes: [0, 0, 0], museumCount: 0, museumValue: 0, players: 0, cmtTotal: 0, likesTotal: 0, fps: fpsShown };
+    const active = getActiveChest();
+    const top1 = getTopBidder();
+    let roundGiftXu = 0;
+    for (const d of S.giftTotals.values()) roundGiftXu += d.coins;
+    return {
+      round: S.round,
+      phase: S.phase,
+      timeLeft: Math.max(0, Number(S.phaseTimer.toFixed(1))),
+      snipeMode: S.phase === 'auction' && S.phaseTimer <= 5.0,
+      snipeCount: S.snipeCount,
+      shakeMeter: Math.round(S.shakeMeter),
+      cluesRevealed: S.cluesRevealed,
+      selectedSlot: S.selectedSlot,
+      activeChestTier: active?.tier || 'carton',
+      topBidder: top1 ? { name: top1.name, bidXu: top1.xu, avatar: top1.avatar } : null,
+      roundGiftXu,
+      votes: [S.chests[0]?.votes || 0, S.chests[1]?.votes || 0, S.chests[2]?.votes || 0],
+      museumCount: S.museum.length,
+      museumValue: S.museum.reduce((a, m) => a + (m.valueXu || 0), 0),
+      players: S.players.size,
+      cmtTotal: S.cmtTotal,
+      likesTotal: S.likesTotal,
+      fps: fpsShown,
+      frameP95,
+      graphics,
+      leaderboardOpen: $('result').classList.contains('on'),
+      leaderboardPinned: manualLeaderboardOpen,
+    };
+  },
+};
+
+// ================= DEMO & STANDALONE PANEL =================
+let demoTimers = [];
+function runDemo() {
+  for (const t of demoTimers) clearTimeout(t);
+  demoTimers = [];
+  initSession(false, true);
+  const at = (sec, fn) => demoTimers.push(setTimeout(fn, sec * 1000));
+  at(1.2, () => onComment({ user: 'd1', name: 'Lan Anh', text: '3' }));
+  at(2.0, () => onComment({ user: 'd2', name: 'Minh Tuấn', text: 'tranh' }));
+  at(3.5, () => onComment({ user: 'd3', name: 'Bé Na', text: '3' }));
+  at(4.5, () => onLike({ user: 'd2', name: 'Minh Tuấn', count: 150 }));
+  at(6.5, () => onComment({ user: 'd4', name: 'Quốc Bảo', text: 'lac' }));
+  at(8.5, () => onLike({ user: 'd1', name: 'Lan Anh', count: 180 }));
+  at(11.0, () => { enterAuctionPhase(); });
+  at(12.5, () => onGift({ user: 'd1', name: 'Lan Anh', giftName: 'Bánh vòng', giftId: 5879, coins: 30, count: 1 }));
+  at(15.0, () => { S.phaseTimer = 4.2; });
+  at(16.0, () => onGift({ user: 'd2', name: 'Minh Tuấn', giftName: 'Mũ lưỡi trai', giftId: 6104, coins: 99, count: 1 }));
+  at(19.0, () => onGift({ user: 'd1', name: 'Lan Anh', giftName: 'Cún Corgi', giftId: 6267, coins: 299, count: 1 }));
+  at(24.5, () => resolveReveal('jackpot'));
+}
+
+  if (!EMBED) {
+  if (DEMO) {
+    $('demoPanel').hidden = false;
+    $('playDemo').onclick = async () => {
+      stopPreview(); stopVoice();
+      await soundOn(true);
+      if (sndOn) $('snd').textContent = '🔊 Tắt âm';
+      runDemo();
+    };
+    document.querySelectorAll('[data-preview-sfx]').forEach((b) => {
+      b.onclick = () => previewSfx(b.dataset.previewSfx);
+    });
+  }
+  const HO = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng'];
+  const TEN = ['Lan Anh', 'Minh Tuấn', 'Thu Hà', 'Quốc Bảo', 'Ngọc Mai'];
+  let uid = 0;
+  const fake = () => { uid++; return { user: 'u' + uid, name: `${HO[uid % HO.length]} ${TEN[(uid * 3) % TEN.length]}` }; };
+  let autoTimer = null;
+
+  $('snd').onclick = async () => {
+    await soundOn(!sndOn);
+    $('snd').textContent = sndOn ? '🔊 Tắt âm' : '🔇 Bật âm thanh';
+  };
+  $('newRoundBtn').onclick = () => window.GAME_API.newRound();
+  $('newSessionBtn').onclick = () => window.GAME_API.newSession();
+  $('toggleLeaderboardBtn').onclick = () => toggleLeaderboard();
+  $('btnSnipeTest').onclick = () => window.GAME_API.testSnipe5s();
+  $('btnVipTest').onclick = () => window.GAME_API.forceVipChest();
+  $('btnJackpotTest').onclick = () => window.GAME_API.testReveal('jackpot');
+  $('btnTrollTest').onclick = () => window.GAME_API.testReveal('troll');
+
+  document.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => {
+    const a = b.dataset.act, f = fake();
+    if (a === 'like') onLike({ ...f, count: 120 });
+    else onComment({ ...f, text: a });
+  }));
+  document.querySelectorAll('[data-gift]').forEach((b) => (b.onclick = () => {
+    const f = fake();
+    onGift({ ...f, coins: Number(b.dataset.gift), giftName: b.dataset.name, count: 1 });
+  }));
+  document.querySelectorAll('[data-len]').forEach((b) => (b.onclick = () => {
+    document.querySelectorAll('[data-len]').forEach((x) => x.classList.toggle('on', x === b));
+    window.GAME_API.setRoundLength(Number(b.dataset.len));
+  }));
+  document.querySelectorAll('[data-jump]').forEach((b) => (b.onclick = () => window.GAME_API.jumpPhase(b.dataset.jump)));
+  document.querySelectorAll('[data-auto]').forEach((b) => (b.onclick = () => {
+    document.querySelectorAll('[data-auto]').forEach((x) => x.classList.toggle('on', x === b));
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    const n = Number(b.dataset.auto);
+    if (n > 0) {
+      const cmds = ['1', '2', '3', 'tranh', 'lac'];
+      autoTimer = setInterval(() => {
+        const f = fake();
+        onComment({ ...f, text: cmds[Math.floor(Math.random() * cmds.length)] });
+        if (Math.random() < 0.35) onLike({ ...f, count: 40 });
+        if (Math.random() < 0.16) onGift({ ...f, coins: Math.random() < 0.2 ? 99 : 10, giftName: Math.random() < 0.2 ? 'Mũ lưỡi trai' : 'Bó hoa hồng', count: 1 });
+      }, Math.max(180, Math.round(1800 / (n / 10))));
+    }
+  }));
+
+  if ($('mcOn')) $('mcOn').onchange = (e) => window.GAME_API.setMc({ mcOn: e.target.checked ? '1' : '0' });
+  if ($('mcVoice')) $('mcVoice').onchange = (e) => window.GAME_API.setMc({ mcVoice: e.target.value });
+  if ($('mcSpeed')) $('mcSpeed').oninput = (e) => {
+    $('mcSpeedV').textContent = `${Number(e.target.value).toFixed(2)}x`;
+    window.GAME_API.setMc({ mcSpeed: e.target.value });
+  };
+  if ($('mcTest')) $('mcTest').onclick = () => mcSay('Còn 5 giây cuối! Ai thả quà giật Két Sắt Rồng Vàng ngay bây giờ!', 4);
+
+  setInterval(() => {
+    if (!$('stats')) return;
+    const st = window.GAME_API.stats();
+    $('stats').textContent = `Vòng #${st.round} (${st.phase}) · ${st.timeLeft}s · Lắc ${st.shakeMeter}% · Tủ: ${st.museumCount} món (${st.museumValue} xu) · ${st.fps} FPS`;
+  }, 500);
+}
+
+// ================= MAIN LOOP =================
+renderGiftLegend();
+initSession(true);
+if (DEMO) setTimeout(runDemo, 700);
+
+let lastMs = performance.now();
+let lastFpsMs = lastMs;
+let lastUiMs = 0;
+
+function loop(nowMs) {
+  requestAnimationFrame(loop);
+  const rawDt = (nowMs - lastMs) / 1000;
+  lastMs = nowMs;
+  const dt = Math.min(0.05, Math.max(0.001, rawDt));
+
+  const t0 = performance.now();
+  step(dt);
+  render(nowMs / 1000, dt);
+  const cost = performance.now() - t0;
+  frameCosts.push(cost);
+  if (frameCosts.length > 90) frameCosts.shift();
+
+  fpsFrames++;
+  if (nowMs - lastFpsMs >= 1000) {
+    fpsShown = fpsFrames;
+    fpsFrames = 0;
+    lastFpsMs = nowMs;
+    const sorted = [...frameCosts].sort((a, b) => a - b);
+    frameP95 = Number((sorted[Math.floor(sorted.length * 0.95)] || 0).toFixed(1));
+  }
+
+  if (uiDirty ? (nowMs - lastUiMs >= 45) : (nowMs - lastUiMs >= 180)) {
+    lastUiMs = nowMs;
+    updateUI();
+  }
+}
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
